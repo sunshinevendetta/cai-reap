@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAI · Balance Mastersheet</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#121821; --panel2:#0e141c; --line:#223042; --text:#e6edf3; --muted:#8b9bb0; --accent:#71f7ec; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --blue:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--text); }
+  .sandbox { background:repeating-linear-gradient(45deg,#3a2a00,#3a2a00 10px,#2d2100 10px,#2d2100 20px); color:#ffd56b; text-align:center; font-size:12px; padding:4px 12px; font-weight:600; letter-spacing:.3px; }
+  header { display:flex; align-items:center; gap:10px; padding:10px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; position:sticky; top:0; background:var(--bg); z-index:5; }
+  header h1 { margin:0; font-size:17px; } header h1 b { color:var(--accent); }
+  .sp { flex:1; }
+  .clock { display:flex; align-items:center; gap:5px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:4px 6px 4px 10px; flex-wrap:wrap; }
+  .clock b { font-variant-numeric:tabular-nums; font-size:15px; }
+  button { background:#1b2533; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 11px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--accent); } button.primary { background:var(--accent); color:#04211f; border-color:var(--accent); font-weight:600; }
+  button.on { background:#0e3b37; border-color:var(--accent); color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; } button.sm { padding:3px 8px; font-size:12px; }
+  input, select { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 9px; font:inherit; }
+  main { padding:16px 20px 60px; max-width:1560px; margin:auto; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:10px; margin-bottom:12px; }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:9px 12px; }
+  .kpi .l { color:var(--muted); font-size:12px; } .kpi .v { font-size:18px; font-weight:650; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .kpi .d { font-size:11px; color:var(--muted); }
+  .formula { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:7px 12px; font-size:12px; color:var(--muted); margin-bottom:12px; display:flex; gap:22px; flex-wrap:wrap; }
+  .formula b { color:var(--warn); }
+  nav { display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:14px; flex-wrap:wrap; }
+  nav a { padding:7px 11px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; font-size:13px; }
+  nav a.on { color:var(--text); border-color:var(--accent); }
+  section { display:none; } section.on { display:block; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  .card h3 { margin:0 0 10px; font-size:14px; } .card h4 { margin:12px 0 6px; font-size:13px; color:var(--muted); }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .tw { overflow-x:auto; } table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; vertical-align:top; } th { color:var(--muted); font-weight:500; font-size:12px; }
+  td.n, th.n { text-align:right; } td.wrap { white-space:normal; min-width:320px; } tr.tot td { font-weight:700; border-top:2px solid var(--line); } tr.sub td { color:var(--muted); }
+  tr.open td { background:#0f1d1c; } tr.day td { background:#101824; color:var(--blue); font-weight:600; } tr.warn td { background:#1f1a0c; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:99px; font-size:11px; border:1px solid var(--line); }
+  .tag.ok { color:var(--ok); border-color:#2a5d34; } .tag.warn { color:var(--warn); border-color:#5c4613; } .tag.bad { color:var(--bad); border-color:#6b2420; } .tag.reap { color:var(--accent); border-color:#1d4b47; }
+  .muted { color:var(--muted); } .small { font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:12px; }
+  .bar { height:8px; background:var(--panel2); border-radius:99px; overflow:hidden; display:flex; margin:8px 0; } .bar i { display:block; height:100%; } .bar .s { background:var(--accent); } .bar .r { background:var(--warn); }
+  .prod { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin-top:12px; }
+  .prod .p { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:4px; }
+  .prod img { width:100%; height:100px; object-fit:contain; background:#fff; border-radius:6px; }
+  .steps9 { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:12px; }
+  .stepc { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px; }
+  .stepc .hd { display:flex; gap:8px; align-items:center; } .stepc .num { background:var(--accent); color:#04211f; border-radius:99px; width:24px; height:24px; display:grid; place-items:center; font-weight:700; font-size:13px; flex:none; }
+  .stepc .hd b { font-size:14px; } .stepc .desc { font-size:12px; color:var(--muted); }
+  .stepc .metric { display:flex; justify-content:space-between; font-size:13px; } .stepc .metric span:last-child { font-variant-numeric:tabular-nums; font-weight:600; }
+  .stepc .reap { font-size:12px; background:#0e2a28; border:1px solid #1d4b47; border-radius:8px; padding:6px 8px; color:#bff; }
+  .stepc .je { font-family:ui-monospace,Consolas,monospace; font-size:11px; color:var(--muted); background:var(--panel2); border-radius:6px; padding:5px 7px; }
+  .stepc .last { font-size:11px; color:var(--muted); border-top:1px dashed var(--line); padding-top:5px; }
+  .chat { display:flex; flex-direction:column; gap:10px; max-height:520px; overflow:auto; margin-bottom:10px; }
+  .msg { padding:10px 12px; border-radius:10px; white-space:pre-wrap; max-width:88%; }
+  .msg.user { background:#1b2533; align-self:flex-end; } .msg.assistant { background:#0e2a28; border:1px solid #1d4b47; }
+  .stepsx { font-size:11px; color:var(--muted); margin-top:6px; }
+  #toast { position:fixed; bottom:20px; right:20px; background:var(--panel); border:1px solid var(--accent); padding:10px 14px; border-radius:10px; display:none; max-width:480px; white-space:pre-wrap; z-index:10; }
+  a.ext { color:var(--accent); }
+  .chk { display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px solid var(--line); }
+  .pill { font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:1px 6px; }
+  .mono { font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+  .banner { border:1px solid var(--warn); background:#1f1a0c; color:#ffd56b; border-radius:10px; padding:8px 12px; margin-bottom:12px; font-size:13px; }
+  .banner.ok { border-color:#2a5d34; background:#0d1f12; color:#9be9a8; }
+</style>
+</head>
+<body>
+<div class="sandbox" data-i="sandboxBanner"></div>
+<header>
+  <h1><b>CAI</b> · <span data-i="title"></span></h1>
+  <span class="sp"></span>
+  <div class="clock">
+    <span class="small muted" data-i="businessDate"></span> <b id="asof"></b>
+    <button class="sm" data-adv="1">+1d</button><button class="sm" data-adv="7">+7d</button><button class="sm" data-adv="31" data-i="toMonthEnd"></button>
+    <button class="sm" id="autoBtn">▶ Autopilot</button>
+    <button class="sm primary" id="closeBtn" data-i="closeMonth"></button>
+  </div>
+  <span class="small muted" id="queueInfo"></span>
+  <button id="lang">ES</button>
+  <button id="reset" data-i="reset"></button>
+</header>
+<main>
+  <div id="cardBanner"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="formula"><span><b data-i="coreFormula"></b> <span data-i="arFormula"></span></span><span><b data-i="cashFormula"></b> <span data-i="cashFormulaTxt"></span></span></div>
+  <nav id="tabs"></nav>
+
+  <section id="cfo">
+    <div class="grid" id="cfoQ"></div>
+    <div class="grid2">
+      <div class="card"><h3 id="hDec"></h3><div id="cfoDec"></div></div>
+      <div class="card"><h3 id="hNar"></h3><div id="cfoNar"></div><h4 id="hEcl"></h4><div id="cfoEcl"></div></div>
+    </div>
+    <div class="card tw"><h3 id="hKpi"></h3><table id="kpiTable"></table></div>
+    <div class="card tw"><h3 id="h13"></h3><table id="w13Table"></table></div>
+    <div class="grid2">
+      <div class="card tw"><h3 id="hAg"></h3><table id="agTable"></table></div>
+      <div class="card tw"><h3 id="hRep"></h3><table id="repTable"></table></div>
+    </div>
+    <div class="card small muted" id="cfoRule"></div>
+  </section>
+
+  <section id="process">
+    <div class="card small muted" data-i="processIntro"></div>
+    <div class="steps9" id="steps9"></div>
+  </section>
+
+  <section id="master">
+    <div class="card tw"><h3 data-i="mastersheet"></h3><table id="msTable"></table></div>
+    <div class="grid">
+      <div class="card"><h3 data-i="forecast"></h3><div id="forecast"></div></div>
+      <div class="card"><h3 data-i="closeChecklist"></h3><div id="checklist"></div></div>
+    </div>
+  </section>
+
+  <section id="ops">
+    <div class="card row">
+      <select id="opStep"></select>
+      <select id="opLevel"><option value="">All levels</option><option>INFO</option><option>WARN</option></select>
+      <input id="opQ" size="30" data-ph="filter">
+      <span class="small muted" data-i="opsHint"></span>
+    </div>
+    <div class="card tw"><table id="opsTable"></table></div>
+  </section>
+
+  <section id="fs">
+    <div class="card row"><span data-i="period"></span> <select id="fsMonth"></select> <span class="small muted" id="fsAsOf"></span></div>
+    <div class="grid2">
+      <div class="card tw"><h3 data-i="incomeStatement"></h3><table id="isTable"></table></div>
+      <div class="card tw"><h3 data-i="balanceSheet"></h3><table id="bsTable"></table></div>
+      <div class="card tw"><h3 data-i="cashFlowSt"></h3><table id="cfTable"></table></div>
+      <div class="card tw"><h3 data-i="trialBalance"></h3><table id="tbTable"></table></div>
+    </div>
+  </section>
+
+  <section id="arr">
+    <div class="card tw"><h3 data-i="agingTitle"></h3><table id="agingTable"></table></div>
+    <div class="card tw"><h3 data-i="rollforward"></h3><table id="rfTable"></table></div>
+    <div class="card tw"><h3 data-i="custStatement"></h3><div class="row"><select id="stCust"></select></div><div id="stBody" style="margin-top:10px"></div></div>
+  </section>
+
+  <section id="orders">
+    <div class="card">
+      <h3 data-i="newOrder"></h3>
+      <div class="row">
+        <select id="oCust"></select>
+        <input id="oDesc" size="24" data-ph="description">
+        <select id="oType"><option>GOODS</option><option>SERVICE</option></select>
+        <input id="oAmt" type="number" min="0" style="width:120px" data-ph="amountUsd">
+        <input id="oDate" type="date"> <input id="oEnd" type="date" title="service end">
+        <button class="primary" id="oCreate" data-i="bookOrder"></button>
+      </div>
+      <div class="small muted" style="margin-top:6px" data-i="orderHint"></div>
+    </div>
+    <div class="card tw"><table id="ordTable"></table></div>
+    <div class="card tw"><h3 data-i="revRecon"></h3><table id="revTable"></table></div>
+  </section>
+
+  <section id="ar">
+    <div class="card row"><button class="primary" id="collect" data-i="runCycle"></button><span class="muted small" data-i="runCycleHint"></span></div>
+    <div class="card tw"><h3 data-i="priority"></h3><table id="prioTable"></table></div>
+    <div class="card tw"><h3 data-i="invoices"></h3><table id="arTable"></table></div>
+  </section>
+
+  <section id="cashapp"><div class="card tw"><table id="cashTable"></table></div></section>
+
+  <section id="treasury">
+    <div class="grid" id="budgets"></div>
+    <div class="card tw"><h3 data-i="allocations"></h3><table id="allocTable"></table></div>
+  </section>
+
+  <section id="spend">
+    <div class="card tw"><h3 data-i="recurringTitle"></h3><div class="small muted" style="margin-bottom:8px" data-i="recurringHint"></div><table id="recTable"></table></div>
+    <div class="card">
+      <h3 data-i="vendorCatalog"></h3>
+      <div class="row"><select id="cc"></select><input id="vq" size="24" data-ph="filter"><input id="qty" type="number" min="1" value="1" style="width:64px"><span class="muted small" data-i="spendHint"></span></div>
+      <div class="prod" id="vendors"></div>
+    </div>
+    <div class="card">
+      <h3 data-i="catalogSearch"></h3>
+      <div class="row"><input id="q" size="28" value="office chair"><button id="search" data-i="search"></button><span class="muted small" data-i="searchHint"></span></div>
+      <div class="prod" id="results"></div>
+    </div>
+  </section>
+
+  <section id="ap">
+    <div class="card tw"><h3 data-i="purchases"></h3><table id="purTable"></table></div>
+    <div class="card tw"><h3 data-i="apBills"></h3><table id="apTable"></table></div>
+  </section>
+
+  <section id="journal"><div class="card tw"><table id="jeTable"></table></div></section>
+
+  <section id="sox">
+    <div class="card tw"><h3 data-i="soxTitle"></h3><table id="soxTable"></table></div>
+    <div class="card tw"><h3 data-i="reconTitle"></h3><table id="reconTable"></table></div>
+    <div class="card tw"><h3 data-i="exceptions"></h3><table id="excTable"></table></div>
+  </section>
+
+  <section id="agent">
+    <div class="card">
+      <div class="small muted" style="margin-bottom:8px" data-i="agentIntro"></div>
+      <div class="chat" id="chat"></div>
+      <div class="row"><input id="ask" style="flex:1" data-ph="askPh"><button class="primary" id="send" data-i="send"></button></div>
+      <div class="row small" style="margin-top:8px" id="suggest"></div>
+    </div>
+  </section>
+
+  <section id="audit"><div class="card tw"><table id="auditTable"></table></div></section>
+
+  <section id="setup">
+    <div class="card">
+      <h3 data-i="setupTitle"></h3>
+      <p class="muted" data-i="setupBody"></p>
+      <div id="enroll"></div>
+      <div class="row" style="margin-top:12px"><input id="enrollId" size="40" data-ph="enrollPh"><button id="useEnroll" data-i="useEnroll"></button></div>
+      <p class="small muted" id="simNote"></p>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const I18N = {
+  en: {
+    sandboxBanner:'SANDBOX ONLY · Reap Agentic API (sandbox) · checkout is simulated (X-Simulate-Checkout) · no real money moves',
+    title:'Balance Mastersheet — Order-to-Cash & Record-to-Report', reset:'Reset demo', businessDate:'Business date', toMonthEnd:'→ month end', closeMonth:'Close month',
+    coreFormula:'Core formula:', arFormula:'Ending AR = Beginning AR + Billings − Collections − Credit notes', cashFormula:'Cash position:', cashFormulaTxt:'Beginning cash + Collections − Expenses − Treasury outflows',
+    k:{ ar:'Accounts receivable (GL 1100)', pastDue:'Past due', revenue:'Revenue MTD', collected:'Collections MTD', cash:'Cash (GL 1000)', netIncome:'Net income MTD', available:'Reap spend authority', spent:'Spent via Reap', sox:'SOX controls' },
+    tabs:{ cfo:'★ CFO center', process:'① Process', master:'Mastersheet', ops:'Operations log', fs:'Financial statements', arr:'AR reports', orders:'Orders & revenue', ar:'Collections', cashapp:'Cash application', treasury:'Treasury', spend:'Reap purchasing', ap:'Expenses / AP', journal:'Journal (GL)', sox:'SOX & recon', agent:'CAI agent', audit:'Audit trail', setup:'Reap card' },
+    processIntro:'The 9-step balance mastersheet workflow, live. Each card shows what the agents did, the numbers, the journal entry posted (US GAAP) and where Reap Agentic is used. Use +1d / +7d / Autopilot to run business days; every operation appears in the Operations log.',
+    steps:[
+      ['Order entry','Sales order created, price & terms validated by the order agent.'],
+      ['Revenue recognition trigger','Product delivered or service period starts (control transfers).'],
+      ['Revenue recognition','ASC 606: goods at a point in time, services ratably over time.'],
+      ['Billing','Invoice issued to customer the same day; due NET30.'],
+      ['Collections','Daily due-date monitoring, debits on D0+, dunning, disputes, promises to pay.'],
+      ['Cash application','Receipts matched to invoices and open AR cleared.'],
+      ['Treasury','Cash position, liquidity reserve, 30-day forecast, spend authority by cost center.'],
+      ['Expenses / AP','Monthly bills accrued and paid; supplies bought by agents through Reap.'],
+      ['Month-end close','Reconcile AR, cash, revenue, expenses; statements; period lock.'],
+    ],
+    reapTouch:[
+      'Procurement agent prices fulfillment supplies with a Reap quote when an order ships.',
+      'Delivery fires a Reap fulfillment purchase (posted to COGS — matching principle).',
+      'COGS from Reap purchases is matched to revenue in the same period.',
+      'Each invoice carries its funding trace: Reap spend is traced back to these invoices.',
+      'Collected cash is what unlocks Reap spend authority — no collection, no spend.',
+      'Reap charges are matched to the budget slices (invoices) that funded them.',
+      'Reap committed spend (standing orders, priced by Reap quotes) is in the forecast.',
+      'Recurring standing orders + ad-hoc buys via Reap quote → checkout (simulated).',
+      'Close agent re-reads every Reap checkout (GET /agentic/checkouts) and matches it to the GL.',
+    ],
+    lastOps:'Latest', noOps:'No operations yet for this step.',
+    mastersheet:'Balance mastersheet', month:'Month', begAR:'Beginning AR', booked:'Orders booked', revenue:'Revenue recognized', billed:'Invoices billed', collections:'Collections', credits:'Credit notes / write-offs', endAR:'Ending AR', expenses:'Expenses', begCash:'Beginning cash', endCash:'Ending cash', statusNotes:'Status / notes',
+    notes:{ AR_DOWN:'AR healthier', AR_UP:'AR grew', CASH_POSITIVE:'Collections > cash paid', CASH_BURN:'Cash burn', DEFERRED_REVENUE_BUILT:'Deferred revenue built' },
+    forecast:'30-day cash forecast (treasury agent)', fStart:'Cash today', fIn:'Expected collections (prob. by aging)', fAp:'Scheduled AP', fReap:'Committed Reap standing orders', fEnd:'Projected', fGap:'Liquidity gap vs reserve!', fOk:'Above reserve', reserve:'Liquidity reserve',
+    closeChecklist:'Month-end close checklist', canClose:'Ready to close', cannotClose:'Close blocked',
+    opsHint:'Every agent action with the AR, cash and deferred-revenue balance right after it. Daily monitoring explains days when AR does not move.',
+    allSteps:'All steps', step:'Step', actor:'Actor', what:'What happened', arAfter:'AR after', cashAfter:'Cash after', je:'JE', controls:'Controls', date:'Date', amount:'Amount',
+    period:'Period', incomeStatement:'Income statement', balanceSheet:'Balance sheet', cashFlowSt:'Cash flow statement (ASC 230)', trialBalance:'Trial balance',
+    isLines:{ goods:'Revenue — goods', services:'Revenue — services', returns:'Less: returns & allowances', net:'Net revenue', cogs:'Cost of goods sold (Reap fulfillment)', gp:'Gross profit', opex:'Operating expenses', totalOpex:'Total operating expenses', ni:'Net income' },
+    bsLines:{ assets:'Assets', liab:'Liabilities', equity:'Equity', ta:'Total assets', tl:'Total liabilities', te:'Total equity', tle:'Total liabilities + equity', balanced:'Balanced (A = L + E)' },
+    cfLines:{ direct:'Operating activities (direct method)', cust:'Cash received from customers', ap:'Cash paid to suppliers (AP)', reap:'Cash paid via Reap (supplies, COGS)', other:'Other', cfo:'Net cash from operating activities', inv:'Investing — capitalized equipment (Reap)', fin:'Financing activities', net:'Net change in cash', beg:'Cash — beginning of period', end:'Cash — end of period', indirect:'Indirect method reconciliation', ni:'Net income', dar:'(Increase) / decrease in AR', ddef:'Increase in deferred revenue', dap:'Increase / (decrease) in AP', dun:'Increase in unapplied cash', ties:'Direct = indirect = Δ cash' },
+    account:'Account', debit:'Debit', credit:'Credit', total:'Total',
+    agingTitle:'AR aging report (US11 format)', notDue:'Not due', d1_30:'1–30', d31_60:'31–60', d61_90:'61–90', d91_180:'91–180', d180p:'180+', grand:'Grand total', grossPD:'Total past due', pctPD:'% past due', analyst:'Analyst', rep:'Sales rep', hold:'On credit hold?', top:'TOP #',
+    rollforward:'AR roll-forward by day (GL 1100)', begin:'Beginning', end:'Ending', noMove:'no invoices due / billed — AR unchanged',
+    custStatement:'Customer statement of account', type:'Type', ref:'Reference', due:'Due', balance:'Balance', openItems:'Open items',
+    newOrder:'Order entry', description:'Description', amountUsd:'Amount USD', bookOrder:'Book order', orderHint:'The order agent validates customer, credit hold, price, terms, dates and past-due exposure. GOODS: revenue + invoice at delivery. SERVICE: billed at start, revenue ratable by day (deferred revenue).',
+    order:'Order', bookedOn:'Booked', trigger:'Delivery / service', recognized:'Recognized', deferred:'Deferred', invoice:'Invoice', status:'Status', customer:'Customer',
+    revRecon:'Revenue reconciliation (ASC 606) — contracts vs GL', contract:'Contract value', unbilled:'Unbilled', schedule:'Schedule',
+    runCycle:'Run collection cycle now', runCycleHint:'Agents also run it automatically every business day. Only due (D0+), authorized, undisputed invoices are debited; one debit per invoice per day (simulated bank rail — Reap does not pull funds).',
+    priority:'Collections prioritization (risk × aging × failed attempts)', invoices:'Invoices', score:'Score', action:'Recommended action', act:'Actions', original:'Original', amountDue:'Outstanding', dueDate:'Due date', dpd:'Days past due', collStatus:'Collection', eligibility:'Eligibility',
+    payment:'Payment', received:'Received', applied:'Applied', bankRef:'Bank ref',
+    allocations:'Spend authority funded by collections (memo, by cost center)', costCenter:'Cost center', consumed:'Spent', policy:'Policy', allocated:'Funded', reserved:'Reserved',
+    recurringTitle:'Recurring spend handled by the agent (Reap standing orders)', recurringHint:'Work someone does by hand today — office coffee, snacks, cleaning supplies, new-hire keyboards, swag — executed on schedule through Reap quote → checkout, capped per run, pre-approved by the controller.',
+    rule:'Rule', freq:'Schedule', cap:'Cap / run', runs:'Runs', last:'Last result',
+    vendorCatalog:'Supported merchants (organizer list) — completed purchases', filter:'Filter…', spendHint:'Live merchant quote via Reap → simulated checkout.',
+    catalogSearch:'Wider Reap catalog — discovery & quote only', search:'Search', searchHint:'Not on the supported list → quote only, no checkout.', buy:'Buy', quote:'Quote only',
+    apBills:'Operating bills (AP) — accrued on the 1st, paid on due date from collected cash only', vendor:'Vendor', category:'Category', paid:'Paid',
+    purchases:'Agent purchases via Reap', product:'Product', kind:'Kind', trace:'Funded by (invoice)',
+    approve:'Approve', reject:'Reject', openApproval:'Open Reap approval', refresh:'Refresh', retry:'Submit checkout', holdOn:'Hold', holdOff:'Release', cn:'Credit note', ptp:'Promise', run:'Run now', pause:'Pause', resume:'Resume',
+    memo:'Memo', lines:'Lines (Dr / Cr)', preparer:'Prepared by', approver:'Approved by', hash:'Hash',
+    soxTitle:'SOX control matrix — automated tests with evidence', objective:'Control objective', area:'Area', nature:'Type / nature', freqC:'Frequency', owner:'Owner', evidence:'Evidence', result:'Result',
+    reconTitle:'Reconciliations', check:'Check', exceptions:'Exceptions', reason:'Reason', severity:'Severity', entity:'Entity', resolve:'Resolve',
+    agentIntro:'CAI agent — deterministic and bilingual, no external AI. It executes through the same engine and Reap Agentic API, so every action is policy-checked, journaled and logged.',
+    send:'Send', askPh:'Ask CAI… e.g. "advance 7 days", "buy 2 keyboards for IT", "financial statements"',
+    suggest:['Summary','Advance 7 days','Who should we chase first?','Buy 2 keyboards for IT','Buy coffee for the office','Book a flight for sales','Financial statements','SOX controls','Can we close?'],
+    time:'Time', event:'Event', transition:'Transition',
+    setupTitle:'Company card enrollment (Reap Agentic)', setupBody:'Enroll the company card once. It is typed on Reap\'s hosted page — it never touches CAI or the agents. All agent purchases charge this enrollment (simulated in sandbox).',
+    startEnroll:'Enroll card with Reap', openEnroll:'Open Reap hosted page', enrollPh:'…or paste an existing enrollment ID', useEnroll:'Use enrollment', noEnroll:'No enrollment yet.',
+    cardMissing:'⚠ Reap card not active — agent purchases are approved but wait for checkout. Open the "Reap card" tab and finish enrollment (sandbox card).', cardOk:'✓ Reap card ACTIVE — agents can complete purchases (simulated checkout).',
+    blocked:'Waiting for Reap card enrollment.', simOn:'Sandbox simulated checkout is ON (X-Simulate-Checkout: COMPLETED).', simOff:'Hosted approval mode.',
+    closed:'Month closed', advanced:'Advanced to', queue:'Reap queue',
+  },
+  es: {
+    sandboxBanner:'SOLO SANDBOX · API Reap Agentic (sandbox) · el checkout es simulado (X-Simulate-Checkout) · no se mueve dinero real',
+    title:'Hoja Maestra de Balance — Order-to-Cash y Record-to-Report', reset:'Reiniciar demo', businessDate:'Fecha operativa', toMonthEnd:'→ fin de mes', closeMonth:'Cerrar mes',
+    coreFormula:'Fórmula base:', arFormula:'CxC final = CxC inicial + Facturación − Cobranza − Notas de crédito', cashFormula:'Posición de caja:', cashFormulaTxt:'Caja inicial + Cobranza − Gastos − Salidas de Tesorería',
+    k:{ ar:'Cuentas por cobrar (1100)', pastDue:'Vencido', revenue:'Ingreso del mes', collected:'Cobranza del mes', cash:'Caja (1000)', netIncome:'Utilidad neta del mes', available:'Autoridad de gasto Reap', spent:'Gastado vía Reap', sox:'Controles SOX' },
+    tabs:{ cfo:'★ Centro CFO', process:'① Proceso', master:'Hoja maestra', ops:'Bitácora de operaciones', fs:'Estados financieros', arr:'Reportes CxC', orders:'Pedidos e ingresos', ar:'Cobranza', cashapp:'Aplicación de pagos', treasury:'Tesorería', spend:'Compras Reap', ap:'Gastos / CxP', journal:'Diario (mayor)', sox:'SOX y conciliación', agent:'Agente CAI', audit:'Auditoría', setup:'Tarjeta Reap' },
+    processIntro:'El flujo de 9 pasos de la hoja maestra, en vivo. Cada tarjeta muestra lo que hicieron los agentes, las cifras, el asiento contable (US GAAP) y dónde se usa Reap Agentic. Usa +1d / +7d / Autopilot para correr días hábiles; cada operación aparece en la Bitácora.',
+    steps:[
+      ['Captura de pedido','Pedido creado; precio y términos validados por el agente de pedidos.'],
+      ['Disparador de ingreso','Producto entregado o inicia el periodo de servicio (transfiere el control).'],
+      ['Reconocimiento de ingreso','ASC 606: bienes en un punto del tiempo, servicios prorrateados.'],
+      ['Facturación','Factura emitida el mismo día; vence a 30 días.'],
+      ['Cobranza','Monitoreo diario, cargos en D0+, gestión, disputas, promesas de pago.'],
+      ['Aplicación de pagos','Cobros conciliados contra facturas; se limpia la CxC.'],
+      ['Tesorería','Posición de caja, reserva de liquidez, pronóstico 30 días, autoridad de gasto.'],
+      ['Gastos / CxP','Provisión y pago de gastos; insumos comprados por agentes vía Reap.'],
+      ['Cierre de mes','Concilia CxC, caja, ingresos y gastos; estados; bloqueo de periodo.'],
+    ],
+    reapTouch:[
+      'El agente de compras cotiza en Reap los insumos de surtido al enviar un pedido.',
+      'La entrega dispara una compra Reap de surtido (costo de ventas — principio de asociación).',
+      'El costo de ventas de Reap se asocia al ingreso del mismo periodo.',
+      'Cada factura lleva su rastro: el gasto Reap se rastrea hasta estas facturas.',
+      'El efectivo cobrado desbloquea la autoridad de gasto Reap — sin cobranza no hay gasto.',
+      'Los cargos Reap se concilian contra los fondos (facturas) que los financiaron.',
+      'El gasto comprometido Reap (órdenes recurrentes cotizadas en Reap) está en el pronóstico.',
+      'Órdenes recurrentes + compras puntuales vía cotización → checkout Reap (simulado).',
+      'El agente de cierre relee cada checkout en Reap (GET /agentic/checkouts) y lo cuadra con el mayor.',
+    ],
+    lastOps:'Últimas', noOps:'Aún no hay operaciones en este paso.',
+    mastersheet:'Hoja maestra de balance', month:'Mes', begAR:'CxC inicial', booked:'Pedidos', revenue:'Ingreso reconocido', billed:'Facturado', collections:'Cobranza', credits:'Notas de crédito / castigos', endAR:'CxC final', expenses:'Gastos', begCash:'Caja inicial', endCash:'Caja final', statusNotes:'Estado / notas',
+    notes:{ AR_DOWN:'CxC más sana', AR_UP:'CxC creció', CASH_POSITIVE:'Cobranza > pagos', CASH_BURN:'Consumo de caja', DEFERRED_REVENUE_BUILT:'Ingreso diferido' },
+    forecast:'Pronóstico de caja 30 días (agente de Tesorería)', fStart:'Caja hoy', fIn:'Cobranza esperada (prob. por antigüedad)', fAp:'CxP programadas', fReap:'Órdenes recurrentes Reap comprometidas', fEnd:'Proyectado', fGap:'¡Brecha de liquidez vs reserva!', fOk:'Arriba de la reserva', reserve:'Reserva de liquidez',
+    closeChecklist:'Checklist de cierre', canClose:'Listo para cerrar', cannotClose:'Cierre bloqueado',
+    opsHint:'Cada acción de los agentes con el saldo de CxC, caja e ingreso diferido justo después. El monitoreo diario explica los días en que la CxC no se mueve.',
+    allSteps:'Todos los pasos', step:'Paso', actor:'Actor', what:'Qué pasó', arAfter:'CxC después', cashAfter:'Caja después', je:'Asiento', controls:'Controles', date:'Fecha', amount:'Importe',
+    period:'Periodo', incomeStatement:'Estado de resultados', balanceSheet:'Balance general', cashFlowSt:'Estado de flujo de efectivo (ASC 230)', trialBalance:'Balanza de comprobación',
+    isLines:{ goods:'Ingreso — bienes', services:'Ingreso — servicios', returns:'Menos: devoluciones y bonificaciones', net:'Ingreso neto', cogs:'Costo de ventas (surtido Reap)', gp:'Utilidad bruta', opex:'Gastos de operación', totalOpex:'Total gastos de operación', ni:'Utilidad neta' },
+    bsLines:{ assets:'Activos', liab:'Pasivos', equity:'Capital', ta:'Total activos', tl:'Total pasivos', te:'Total capital', tle:'Total pasivo + capital', balanced:'Cuadra (A = P + C)' },
+    cfLines:{ direct:'Actividades de operación (método directo)', cust:'Efectivo cobrado a clientes', ap:'Efectivo pagado a proveedores (CxP)', reap:'Efectivo pagado vía Reap (insumos, costo)', other:'Otros', cfo:'Flujo neto de operación', inv:'Inversión — equipo capitalizado (Reap)', fin:'Actividades de financiamiento', net:'Cambio neto en caja', beg:'Caja — inicio del periodo', end:'Caja — fin del periodo', indirect:'Conciliación método indirecto', ni:'Utilidad neta', dar:'(Aumento) / disminución en CxC', ddef:'Aumento en ingreso diferido', dap:'Aumento / (disminución) en CxP', dun:'Aumento en efectivo no aplicado', ties:'Directo = indirecto = Δ caja' },
+    account:'Cuenta', debit:'Cargo', credit:'Abono', total:'Total',
+    agingTitle:'Reporte de antigüedad de saldos (formato US11)', notDue:'No vencido', d1_30:'1–30', d31_60:'31–60', d61_90:'61–90', d91_180:'91–180', d180p:'180+', grand:'Total', grossPD:'Total vencido', pctPD:'% vencido', analyst:'Analista', rep:'Vendedor', hold:'¿Bloqueo de crédito?', top:'TOP #',
+    rollforward:'Movimiento diario de CxC (cuenta 1100)', begin:'Inicial', end:'Final', noMove:'sin vencimientos / facturas — CxC sin cambio',
+    custStatement:'Estado de cuenta del cliente', type:'Tipo', ref:'Referencia', due:'Vence', balance:'Saldo', openItems:'Partidas abiertas',
+    newOrder:'Captura de pedido', description:'Descripción', amountUsd:'Importe USD', bookOrder:'Registrar pedido', orderHint:'El agente valida cliente, bloqueo de crédito, precio, términos, fechas y exposición vencida. BIENES: ingreso + factura a la entrega. SERVICIO: se factura al inicio, ingreso prorrateado (ingreso diferido).',
+    order:'Pedido', bookedOn:'Registrado', trigger:'Entrega / servicio', recognized:'Reconocido', deferred:'Diferido', invoice:'Factura', status:'Estado', customer:'Cliente',
+    revRecon:'Conciliación de ingresos (ASC 606) — contratos vs mayor', contract:'Valor del contrato', unbilled:'No facturado', schedule:'Calendario',
+    runCycle:'Ejecutar cobranza ahora', runCycleHint:'Los agentes también la ejecutan cada día hábil. Solo se cargan facturas vencidas (D0+), autorizadas y sin disputa; un cargo por factura al día (riel bancario simulado — Reap no extrae fondos).',
+    priority:'Priorización de cobranza (riesgo × antigüedad × intentos fallidos)', invoices:'Facturas', score:'Puntaje', action:'Acción recomendada', act:'Acciones', original:'Importe original', amountDue:'Saldo', dueDate:'Vencimiento', dpd:'Días de atraso', collStatus:'Cobranza', eligibility:'Elegibilidad',
+    payment:'Pago', received:'Recibido', applied:'Aplicado', bankRef:'Ref. bancaria',
+    allocations:'Autoridad de gasto fondeada por la cobranza (memo, por centro de costos)', costCenter:'Centro de costos', consumed:'Gastado', policy:'Política', allocated:'Fondeado', reserved:'Reservado',
+    recurringTitle:'Gasto recurrente que maneja el agente (órdenes recurrentes Reap)', recurringHint:'Trabajo que hoy alguien hace a mano — café, botanas, limpieza, teclados para nuevos ingresos, artículos promocionales — ejecutado según calendario vía cotización → checkout Reap, con tope por ejecución y aprobado por el contralor.',
+    rule:'Regla', freq:'Calendario', cap:'Tope / ejecución', runs:'Ejecuciones', last:'Último resultado',
+    vendorCatalog:'Comercios soportados (lista oficial) — compras completadas', filter:'Filtrar…', spendHint:'Cotización en vivo vía Reap → checkout simulado.',
+    catalogSearch:'Catálogo Reap ampliado — descubrimiento y cotización', search:'Buscar', searchHint:'Fuera de la lista soportada → solo cotización, sin checkout.', buy:'Comprar', quote:'Solo cotizar',
+    apBills:'Gastos operativos (CxP) — provisionados el día 1, pagados al vencimiento solo con efectivo cobrado', vendor:'Proveedor', category:'Categoría', paid:'Pagado',
+    purchases:'Compras de los agentes vía Reap', product:'Producto', kind:'Tipo', trace:'Financiado por (factura)',
+    approve:'Aprobar', reject:'Rechazar', openApproval:'Abrir aprobación Reap', refresh:'Actualizar', retry:'Enviar checkout', holdOn:'Bloquear', holdOff:'Liberar', cn:'Nota de crédito', ptp:'Promesa', run:'Ejecutar', pause:'Pausar', resume:'Reanudar',
+    memo:'Concepto', lines:'Partidas (Cargo / Abono)', preparer:'Elaboró', approver:'Aprobó', hash:'Hash',
+    soxTitle:'Matriz de controles SOX — pruebas automáticas con evidencia', objective:'Objetivo del control', area:'Área', nature:'Tipo / naturaleza', freqC:'Frecuencia', owner:'Responsable', evidence:'Evidencia', result:'Resultado',
+    reconTitle:'Conciliaciones', check:'Control', exceptions:'Excepciones', reason:'Motivo', severity:'Severidad', entity:'Entidad', resolve:'Resolver',
+    agentIntro:'Agente CAI — determinista y bilingüe, sin IA externa. Ejecuta con el mismo motor y la API Reap Agentic: cada acción pasa por políticas, genera asiento y queda en la bitácora.',
+    send:'Enviar', askPh:'Pregúntale a CAI… ej. "avanza 7 días", "compra 2 teclados para TI", "estados financieros"',
+    suggest:['Resumen','Avanza 7 días','¿A quién cobramos primero?','Compra 2 teclados para TI','Compra café para la oficina','Reserva un vuelo para ventas','Estados financieros','Controles SOX','¿Podemos cerrar?'],
+    time:'Hora', event:'Evento', transition:'Transición',
+    setupTitle:'Registro de tarjeta corporativa (Reap Agentic)', setupBody:'Registra la tarjeta una sola vez. Se captura en la página de Reap — nunca pasa por CAI ni por los agentes. Todas las compras se cargan a este registro (simulado en sandbox).',
+    startEnroll:'Registrar tarjeta con Reap', openEnroll:'Abrir página de Reap', enrollPh:'…o pega un ID de registro existente', useEnroll:'Usar registro', noEnroll:'Sin registro todavía.',
+    cardMissing:'⚠ Tarjeta Reap no activa — las compras se aprueban pero esperan checkout. Abre la pestaña "Tarjeta Reap" y completa el registro (tarjeta sandbox).', cardOk:'✓ Tarjeta Reap ACTIVA — los agentes pueden completar compras (checkout simulado).',
+    blocked:'Esperando registro de tarjeta Reap.', simOn:'Checkout simulado de sandbox ACTIVO (X-Simulate-Checkout: COMPLETED).', simOff:'Modo de aprobación.',
+    closed:'Mes cerrado', advanced:'Avanzado a', queue:'Cola Reap',
+  },
+};
+const STEP_TAB = ['orders','orders','orders','orders','ar','cashapp','treasury','spend','master'];
+let lang = 'en', S = null, tab = location.hash.slice(1) || 'cfo', chatLog = [], auto = null, fsData = null;
+const t = k => I18N[lang][k] ?? k;
+const $ = id => document.getElementById(id);
+const money = c => new Intl.NumberFormat(lang === 'es' ? 'es-MX' : 'en-US', { style:'currency', currency:'USD' }).format((c || 0) / 100);
+const mm = c => c < 0 ? `(${money(-c)})` : money(c);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const kindOf = s => /CONFIRMED|PAID|COMPLETED|ACTIVE|APPROVED|POSTED|BILLED|VALIDATED|CLOSED|RESOLVED|AUTO_DEBIT|EFFECTIVE|^OK$/.test(s) ? 'ok' : /FAIL|REJECT|DISPUTED|EXPIRED|BREAK|HIGH|HELD|HOLD|CANCELED|INEFFECTIVE/.test(s) ? 'bad' : /PENDING|PARTIAL|REQUIRES|NEEDS|PROCESSING|MEDIUM|OPEN|DUNNING|BOOKED|DELIVERED|IN_SERVICE|PROMISE|REMINDER|WARN|PAUSED/.test(s) ? 'warn' : '';
+const tag = (s, kind) => `<span class="tag ${kind ?? kindOf(s)}">${esc(s)}</span>`;
+const toast = m => { const el = $('toast'); el.textContent = m; el.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => el.style.display = 'none', 6000); };
+const custName = id => S.portfolio.customers.find(c => c.id === id)?.legalName || id;
+const acct = a => S.coa[a] ? `${a} ${S.coa[a].name[lang]}` : a;
+const cname = o => o?.[lang] ?? o?.en ?? o;
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.code ? `${j.code}: ${j.error}` : j.error);
+  return j;
+}
+async function busy(btn, fn) { if (btn) btn.disabled = true; try { await fn(); } catch (e) { toast('⚠ ' + e.message); } finally { if (btn) btn.disabled = false; } }
+async function refresh() { S = await api('/api/state'); render(); }
+
+function render() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i]').forEach(el => el.textContent = t(el.dataset.i));
+  document.querySelectorAll('[data-ph]').forEach(el => el.placeholder = t(el.dataset.ph));
+  $('lang').textContent = lang === 'en' ? 'ES' : 'EN';
+  if (!S) return;
+  const P = S.portfolio, R = S.reconciliation, B = S.budgets, M = S.mastersheet, cur = M[M.length - 1], ST = S.statements;
+  $('asof').textContent = S.asOf;
+  $('queueInfo').textContent = S.reapQueue.pending || S.reapQueue.running ? `${t('queue')}: ${S.reapQueue.pending}${S.reapQueue.running ? ' ⟳' : ''}` : '';
+  const active = S.enrollment?.status === 'ACTIVE';
+  $('cardBanner').innerHTML = `<div class="banner ${active ? 'ok' : ''}">${active ? t('cardOk') : t('cardMissing')}</div>`;
+  const K = t('k'), soxOk = S.sox.filter(c => c.ok).length;
+  $('kpis').innerHTML = [[K.ar, S.aging.glAR, `${t('begAR')} ${money(cur.beginningAR)}`], [K.pastDue, P.totals.pastDueCents], [K.revenue, cur.revenue], [K.collected, cur.collections], [K.cash, S.cash.cashCents, `${t('reserve')} ${money(S.cash.reserveCents)}`], [K.netIncome, ST.income.netIncome], [K.available, B.reduce((a, b) => a + b.availableCents, 0)], [K.spent, R.totals.charged], [K.sox, null, `${soxOk}/${S.sox.length}`]]
+    .map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v == null ? `${soxOk}/${S.sox.length}` : mm(v)}</div>${d && v != null ? `<div class="d">${d}</div>` : ''}</div>`).join('');
+  $('tabs').innerHTML = Object.entries(t('tabs')).map(([id, l]) => `<a data-tab="${id}" class="${id === tab ? 'on' : ''}">${l}</a>`).join('');
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === tab));
+  $('closeBtn').disabled = !S.closeChecklist.canClose;
+  ({ cfo: renderCFO, process: renderProcess, master: renderMaster, ops: renderOps, fs: renderFS, arr: renderARR, orders: renderOrders, ar: renderAR, cashapp: renderCashApp, treasury: renderTreasury, spend: renderSpend, ap: renderAP, journal: renderJournal, sox: renderSOX, agent: renderAgent, audit: renderAudit, setup: renderSetup })[tab]?.();
+}
+
+const CFO_T = {
+  en: { q: ['How much did we earn?', 'How much cash do we have?', 'Who owes us money?', 'Are the books accurate and supported?', 'What requires my decision today?'], dec: 'Decision queue (controlled autonomy: humans approve)', nar: 'Variance narrative (sourced from the ledger)', ecl: 'ASC 326 — expected credit losses', kpi: '20 certified CFO KPIs — definition, owner, source and formula', w13: '13-week liquidity forecast', ag: 'Six finance agents', rep: 'Reporting catalog', rule: 'Product design rule: agents prepare · deterministic accounting rules validate · authorized people approve · the system records the evidence. SOX governs internal control over financial reporting; US GAAP governs recognition and presentation — control design and operating effectiveness must still be evaluated by management and auditors. Sandbox demo, not a certification.', approve: 'Approve', propose: 'Propose estimate now', none: 'Nothing pending — all clear.', week: 'Week', begin: 'Begin', inflow: 'Collections', ap: 'AP', reap: 'Reap', end: 'End', agent: 'Agent', actions: 'Actions', autonomy: 'Autonomy', report: 'Report', cadence: 'Cadence', owner: 'Owner', src: 'Certified source', status: 'Recon', required: 'Required', current: 'Booked', adj: 'Adjustment', bucket: 'Bucket', rate: 'Rate', gross: 'Gross AR' },
+  es: { q: ['¿Cuánto ganamos?', '¿Cuánta caja tenemos?', '¿Quién nos debe?', '¿Los libros son exactos y soportados?', '¿Qué requiere mi decisión hoy?'], dec: 'Cola de decisiones (autonomía controlada: aprueban personas)', nar: 'Narrativa de variaciones (con fuente en el mayor)', ecl: 'ASC 326 — pérdidas crediticias esperadas', kpi: '20 KPIs certificados del CFO — definición, responsable, fuente y fórmula', w13: 'Pronóstico de liquidez a 13 semanas', ag: 'Seis agentes financieros', rep: 'Catálogo de reportes', rule: 'Regla de diseño: los agentes preparan · reglas contables deterministas validan · personas autorizadas aprueban · el sistema registra la evidencia. SOX rige el control interno sobre la información financiera; US GAAP rige el reconocimiento y la presentación — el diseño y la efectividad de los controles deben evaluarse por la administración y auditores. Demo en sandbox, no una certificación.', approve: 'Aprobar', propose: 'Proponer estimación ahora', none: 'Nada pendiente.', week: 'Semana', begin: 'Inicial', inflow: 'Cobranza', ap: 'CxP', reap: 'Reap', end: 'Final', agent: 'Agente', actions: 'Acciones', autonomy: 'Autonomía', report: 'Reporte', cadence: 'Frecuencia', owner: 'Responsable', src: 'Fuente certificada', status: 'Conciliación', required: 'Requerida', current: 'Registrada', adj: 'Ajuste', bucket: 'Tramo', rate: 'Tasa', gross: 'CxC bruta' },
+};
+function renderCFO() {
+  const T = CFO_T[lang], C = S.cfo, Q = C.questions;
+  $('hDec').textContent = T.dec; $('hNar').textContent = T.nar; $('hEcl').textContent = T.ecl; $('hKpi').textContent = T.kpi + ' · ' + C.kpis.period + ' · ' + C.kpis.status; $('h13').textContent = T.w13; $('hAg').textContent = T.ag; $('hRep').textContent = T.rep; $('cfoRule').textContent = T.rule;
+  const card = (q, v, sub) => '<div class="card"><div class="small muted">' + q + '</div><div class="kpi" style="border:0;padding:0"><div class="v">' + v + '</div></div><div class="small muted">' + sub + '</div></div>';
+  $('cfoQ').innerHTML = card(T.q[0], mm(Q.earned.netIncome), (lang === 'es' ? 'Ingreso neto ' : 'Net revenue ') + money(Q.earned.netRevenue) + ' · ' + (lang === 'es' ? 'utilidad bruta ' : 'gross profit ') + money(Q.earned.grossProfit) + ' · ' + Q.earned.period)
+    + card(T.q[1], money(Q.cash.cash), (lang === 'es' ? 'Reserva ' : 'Reserve ') + money(Q.cash.reserve) + ' · 30d ' + money(Q.cash.forecast30) + (Q.cash.gap ? ' ⚠' : ' ✓'))
+    + card(T.q[2], money(Q.owed.total), (lang === 'es' ? 'Vencido ' : 'Past due ') + money(Q.owed.pastDue) + ' · ECL ' + money(Q.owed.allowance) + '<br>' + Q.owed.top.map(t => esc(t.name) + ' ' + money(t.total)).join(' · '))
+    + card(T.q[3], (Q.accurate.trialBalance && Q.accurate.balanceSheet && Q.accurate.chains ? '✓ ' : '✗ ') + 'SOX ' + Q.accurate.sox, 'TB ' + (Q.accurate.trialBalance ? '✓' : '✗') + ' · A=L+E ' + (Q.accurate.balanceSheet ? '✓' : '✗') + ' · recon ' + Q.accurate.recon + ' · hash chains ' + (Q.accurate.chains ? '✓' : '✗'))
+    + card(T.q[4], Q.decisions.length, Q.decisions.slice(0, 2).map(d => esc(d[lang])).join('<br>'));
+  $('cfoDec').innerHTML = Q.decisions.length ? '<table>' + Q.decisions.map(d => '<tr><td>' + tag(d.type) + '</td><td class="wrap small">' + esc(d[lang]) + '</td><td class="n">' + (d.cents != null ? money(d.cents) : '') + '</td><td>' + (d.type === 'ECL_APPROVAL' ? '<button class="sm primary" data-ecl="' + d.ref + '">' + T.approve + '</button>' : d.type === 'SPEND_APPROVAL' ? '<button class="sm primary" data-act="approve" data-id="' + d.ref + '">' + T.approve + '</button>' : '<button class="sm" data-goto="' + ({ CREDIT_HOLD: 'ar', DISPUTE: 'ar', ORDER_HELD: 'orders', EXCEPTION: 'sox', REAP_CARD: 'setup' }[d.type] || 'sox') + '">→</button>') + '</td></tr>').join('') + '</table>' : '<span class="muted">' + T.none + '</span>';
+  $('cfoNar').innerHTML = C.narrative[lang].map(l => '<p style="margin:4px 0">' + esc(l) + '</p>').join('');
+  const E = C.ecl.calc;
+  $('cfoEcl').innerHTML = '<table><tr><th>' + T.bucket + '</th><th class="n">' + T.gross + '</th><th class="n">' + T.rate + '</th><th class="n">' + T.required + '</th></tr>' + Object.entries(E.rows).filter(([, r]) => r.gross).map(([k, r]) => '<tr><td>' + k + '</td><td class="n">' + money(r.gross) + '</td><td class="n">' + (r.rateBps / 100) + '%</td><td class="n">' + money(r.required) + '</td></tr>').join('') + '<tr class="tot"><td>' + E.matrix + '</td><td></td><td class="n">' + T.current + ' ' + money(E.current) + '</td><td class="n">' + money(E.required) + '</td></tr></table>'
+    + '<div class="row" style="margin-top:6px"><span class="small">' + T.adj + ': <b>' + mm(E.adjustment) + '</b></span><button class="sm" id="eclPropose">' + T.propose + '</button>' + C.ecl.proposals.slice(0, 3).map(p => ' <span class="small muted">' + p.date + ' ' + tag(p.status) + '</span>').join('') + '</div>';
+  $('kpiTable').innerHTML = '<tr><th>#</th><th>Function</th><th>KPI</th><th class="n">Value</th><th>Definition</th><th>Owner</th><th>Source</th><th>Formula (live numbers)</th></tr>' + C.kpis.kpis.map(k => '<tr><td>' + String(k.n).padStart(2, '0') + '</td><td class="small">' + k.function + '</td><td><b>' + k.name + '</b></td><td class="n"><b>' + (k.value == null ? '—' : k.unit === '$' ? mm(k.value) : k.value + (k.unit === '%' ? '%' : ' ' + k.unit)) + '</b></td><td class="wrap small">' + esc(k.definition) + '</td><td class="small">' + k.owner + '</td><td class="small">' + esc(k.source) + '</td><td class="small mono">' + esc(k.formula) + '</td></tr>').join('');
+  $('w13Table').innerHTML = '<tr><th>' + T.week + '</th><th></th><th class="n">' + T.begin + '</th><th class="n">+ ' + T.inflow + '</th><th class="n">− ' + T.ap + '</th><th class="n">− ' + T.reap + ' ⚡</th><th class="n">' + T.end + '</th></tr>' + C.forecast13w.weeks.map(w => '<tr' + (w.belowReserve ? ' class="warn"' : '') + '><td>' + w.week + '</td><td class="small">' + w.start + ' → ' + w.end + '</td><td class="n">' + money(w.begin) + '</td><td class="n">' + money(w.inflow) + '</td><td class="n">' + money(w.ap) + '</td><td class="n">' + money(w.reap) + '</td><td class="n"><b>' + money(w.ending) + '</b></td></tr>').join('');
+  $('agTable').innerHTML = '<tr><th>' + T.agent + '</th><th class="n">' + T.actions + '</th><th>' + T.autonomy + '</th></tr>' + C.agents.map(a => '<tr><td><b>' + a.name + '</b><div class="small muted" style="white-space:normal">' + esc(a.function) + '</div>' + (a.last ? '<div class="small muted" style="white-space:normal">↳ ' + esc(a.last[lang]).slice(0, 110) + '</div>' : '') + '</td><td class="n">' + a.actions + '</td><td class="wrap small">' + esc(a.autonomy) + '</td></tr>').join('');
+  $('repTable').innerHTML = '<tr><th>' + T.report + '</th><th>' + T.cadence + '</th><th>' + T.owner + '</th><th>' + T.src + '</th><th>' + T.status + '</th></tr>' + C.reports.map(r => '<tr><td><a class="ext" data-tab="' + r.tab + '">' + r.name + '</a></td><td class="small">' + r.cadence + '</td><td class="small">' + r.owner + '</td><td class="small">' + esc(r.source) + '</td><td>' + tag(r.reconciliation === 'RECONCILED' ? 'OK' : 'BREAK') + '</td></tr>').join('');
+}
+
+function stepMetrics(i) {
+  const cur = S.mastersheet.at(-1), ord = S.orders, R = S.revenue;
+  const reapBy = k => S.purchases.filter(p => p.kind === k);
+  const done = arr => arr.filter(p => p.status === 'COMPLETED');
+  return [
+    [[lang === 'es' ? 'Pedidos del mes' : 'Orders booked (month)', money(cur.ordersBooked)], [lang === 'es' ? 'Validados / retenidos' : 'Validated / held', `${ord.filter(o => o.status !== 'BOOKED' && o.status !== 'VALIDATION_FAILED').length} / ${ord.filter(o => o.status === 'VALIDATION_FAILED').length}`]],
+    [[lang === 'es' ? 'Entregados / en servicio' : 'Delivered / in service', `${ord.filter(o => o.type === 'GOODS' && o.invoiceId).length} / ${ord.filter(o => o.type === 'SERVICE' && o.invoiceId).length}`], [lang === 'es' ? 'Pendientes de disparo' : 'Awaiting trigger', ord.filter(o => o.status === 'VALIDATED').length]],
+    [[lang === 'es' ? 'Ingreso reconocido (mes)' : 'Revenue recognized (month)', money(cur.revenue)], [lang === 'es' ? 'Ingreso diferido (2100)' : 'Deferred revenue (2100)', money(R.gl.deferred)], ['GL = contratos', R.revenueTies ? '✓' : '✗']],
+    [[lang === 'es' ? 'Facturado (mes)' : 'Invoices billed (month)', money(cur.billed)], [lang === 'es' ? 'Facturas abiertas' : 'Open invoices', S.portfolio.invoices.filter(i => i.outstandingCents > 0).length]],
+    [[lang === 'es' ? 'Cobrado (mes)' : 'Collected (month)', money(cur.collections)], [lang === 'es' ? 'Vencido' : 'Past due', money(S.portfolio.totals.pastDueCents)], [lang === 'es' ? 'Cargos fallidos' : 'Failed debits', S.collections.filter(c => c.status === 'COLLECTION_FAILED').length]],
+    [[lang === 'es' ? 'Aplicado' : 'Applied', money(R ? S.reconciliation.totals.applied : 0)], [lang === 'es' ? 'Efectivo no aplicado' : 'Unapplied cash', money(S.statements.balance.liabilities.find(l => l.account === '2300')?.cents || 0)], ['CxC subledger = GL', S.aging.ties ? '✓' : '✗']],
+    [[lang === 'es' ? 'Caja' : 'Cash', money(S.cash.cashCents)], [lang === 'es' ? 'Pronóstico 30d' : '30-day forecast', money(S.forecast.projectedCents)], [lang === 'es' ? 'Autoridad Reap disponible' : 'Reap authority available', money(S.budgets.reduce((a, b) => a + b.availableCents, 0))]],
+    [[lang === 'es' ? 'Gastos (mes)' : 'Expenses (month)', money(cur.expenses)], ['Reap: recurrentes / puntuales / surtido'.replace('Reap: recurrentes / puntuales / surtido', lang === 'es' ? 'Reap recurrente / puntual / surtido' : 'Reap recurring / ad-hoc / fulfillment'), `${done(reapBy('RECURRING')).length} / ${done(reapBy('ADHOC')).length} / ${done(reapBy('FULFILLMENT')).length}`], [lang === 'es' ? 'CxP pagadas' : 'AP bills paid', `${S.apBills.filter(b => b.status === 'PAID').length}/${S.apBills.length}`]],
+    [[lang === 'es' ? 'Checklist' : 'Checklist', `${S.closeChecklist.items.filter(x => x.ok).length}/${S.closeChecklist.items.length}`], [lang === 'es' ? 'Periodos cerrados' : 'Closed periods', S.closedMonths.map(c => c.month).join(', ') || '—'], ['SOX', `${S.sox.filter(c => c.ok).length}/${S.sox.length}`]],
+  ][i];
+}
+const STEP_JE = ['—', 'Dr 5000 COGS / Cr 1000 Cash (Reap)', 'Dr 1100 AR / Cr 4000 Revenue · Dr 2100 Deferred / Cr 4010 Revenue', 'Dr 1100 AR / Cr 4000 or 2100', 'Dr 1000 Cash / Cr 2300 Unapplied · Dr 4900 / Cr 1100 (credit note)', 'Dr 2300 Unapplied / Cr 1100 AR', 'memo: cost-center spend authority', 'Dr 6xxx / Cr 2000 AP · Dr 2000 / Cr 1000 · Dr 6500 / Cr 1000 (Reap)', 'Period lock · statements · TB'];
+function renderProcess() {
+  const steps = t('steps'), reap = t('reapTouch');
+  $('steps9').innerHTML = steps.map(([name, desc], i) => {
+    const ops = S.oplog.filter(o => o.step === i + 1 && o.action !== 'DAY_OPENED').slice(0, 3);
+    return `<div class="stepc"><div class="hd"><span class="num">${i + 1}</span><b>${name}</b><span class="sp"></span><button class="sm" data-goto="${STEP_TAB[i]}">→</button></div>
+      <div class="desc">${desc}</div>
+      ${stepMetrics(i).map(([l, v]) => `<div class="metric"><span class="muted">${l}</span><span>${v}</span></div>`).join('')}
+      <div class="reap">⚡ Reap Agentic — ${reap[i]}</div>
+      <div class="je">${STEP_JE[i]}</div>
+      <div class="last">${ops.length ? ops.map(o => `<div>${o.date} · ${esc(o[lang])}</div>`).join('') : t('noOps')}</div></div>`;
+  }).join('');
+}
+
+function renderMaster() {
+  const N = t('notes');
+  $('msTable').innerHTML = `<tr><th>${t('month')}</th><th class="n">${t('begAR')}</th><th class="n">${t('booked')}</th><th class="n">${t('revenue')}</th><th class="n">${t('billed')}</th><th class="n">${t('collections')}</th><th class="n">${t('credits')}</th><th class="n">${t('endAR')}</th><th class="n">${t('expenses')}</th><th class="n">${t('begCash')}</th><th class="n">${t('endCash')}</th><th>${t('statusNotes')}</th></tr>` +
+    S.mastersheet.map(r => `<tr class="${r.status === 'OPEN' ? 'open' : ''}"><td><b>${r.month}</b></td><td class="n">${money(r.beginningAR)}</td><td class="n">${money(r.ordersBooked)}</td><td class="n">${money(r.revenue)}</td><td class="n">${money(r.billed)}</td><td class="n">${money(r.collections)}</td><td class="n">${money(r.credits)}</td><td class="n"><b>${money(r.endingAR)}</b></td><td class="n">${money(r.expenses)}<div class="small muted">Reap ${money(r.reapExpenses)}</div></td><td class="n">${money(r.beginningCash)}</td><td class="n"><b>${money(r.endingCash)}</b></td><td>${tag(r.status)} ${r.tieOut?.arOk === false ? tag('AR≠GL', 'bad') : tag('AR=GL', 'ok')} ${r.tieOut?.cashOk === false ? tag('CASH≠GL', 'bad') : tag('CASH=GL', 'ok')} <span class="small muted">${(r.notes || []).map(n => N[n] || n).join(' · ')}</span></td></tr>`).join('');
+  const F = S.forecast;
+  $('forecast').innerHTML = `<table><tr><td>${t('fStart')}</td><td class="n">${money(F.startCents)}</td></tr><tr><td>+ ${t('fIn')}</td><td class="n">${money(F.expectedInflowCents)}</td></tr><tr><td>− ${t('fAp')}</td><td class="n">${money(F.scheduledApCents)}</td></tr><tr><td>− ${t('fReap')} <span class="tag reap">Reap</span></td><td class="n">${money(F.reapCommittedCents)}</td></tr><tr class="tot"><td>${t('fEnd')} (${F.horizon})</td><td class="n">${money(F.projectedCents)}</td></tr><tr><td>${t('reserve')}</td><td class="n">${money(S.cash.reserveCents)}</td></tr></table><div style="margin-top:8px">${F.liquidityGap ? tag(t('fGap'), 'bad') : tag(t('fOk'), 'ok')}</div>`;
+  const C = S.closeChecklist;
+  $('checklist').innerHTML = `<div class="row" style="margin-bottom:6px"><b>${C.month}</b> ${C.canClose ? tag(t('canClose'), 'ok') : tag(t('cannotClose'), 'bad')}</div>` + C.items.map(i => `<div class="chk">${i.ok ? '✅' : i.warn ? '⚠️' : '⛔'} <span>${i.id}</span> <span class="small muted">${esc(i.detail || '')}</span></div>`).join('');
+}
+
+function renderOps() {
+  const sel = $('opStep');
+  if (!sel.options.length || sel.dataset.lang !== lang) { const v = sel.value; sel.innerHTML = `<option value="">${t('allSteps')}</option><option value="0">0 · System / clock</option>` + t('steps').map(([n], i) => `<option value="${i + 1}">${i + 1} · ${n}</option>`).join(''); sel.value = v; sel.dataset.lang = lang; }
+  const st = sel.value, lv = $('opLevel').value, q = $('opQ').value.toLowerCase();
+  const rows = S.oplog.filter(o => (st === '' || String(o.step) === st) && (!lv || o.level === lv) && (!q || (o[lang] + ' ' + o.ref + ' ' + o.action).toLowerCase().includes(q)));
+  $('opsTable').innerHTML = `<tr><th>#</th><th>${t('date')}</th><th>${t('step')}</th><th>${t('actor')}</th><th>${t('what')}</th><th class="n">${t('amount')}</th><th class="n">${t('arAfter')}</th><th class="n">${t('cashAfter')}</th><th>${t('je')}</th><th>${t('controls')}</th></tr>` +
+    rows.slice(0, 500).map(o => o.action === 'DAY_OPENED' ? `<tr class="day"><td>${o.seq}</td><td colspan="9">${esc(o[lang])}</td></tr>` :
+      `<tr class="${o.level === 'WARN' ? 'warn' : ''}"><td class="small muted">${o.seq}</td><td>${o.date}</td><td>${o.step || '—'}</td><td class="small">${esc(o.actor)}</td><td class="wrap">${/REAP/.test(o.action) ? '<span class="tag reap">Reap</span> ' : ''}${esc(o[lang])}</td><td class="n">${o.amountCents != null ? money(o.amountCents) : ''}</td><td class="n">${money(o.arAfter)}</td><td class="n">${money(o.cashAfter)}</td><td class="small mono">${o.jeId || ''}</td><td class="small">${(o.controls || []).join(' ')}</td></tr>`).join('');
+}
+
+async function renderFS() {
+  const sel = $('fsMonth');
+  const months = [...S.closedMonths.map(c => c.month), S.openMonth];
+  if (sel.dataset.sig !== months.join()) { const v = sel.value; sel.innerHTML = months.map(m => `<option>${m}</option>`).join(''); sel.value = months.includes(v) ? v : S.openMonth; sel.dataset.sig = months.join(); }
+  const d = sel.value === S.openMonth ? S.statements : (fsData?.period === sel.value ? fsData : (fsData = await api('/api/statements', { month: sel.value })));
+  const I = d.income, Bs = d.balance, C = d.cashFlow, TB = d.trial, L1 = t('isLines'), L2 = t('bsLines'), L3 = t('cfLines');
+  $('fsAsOf').textContent = `${lang === 'es' ? 'al' : 'as of'} ${d.asOf}`;
+  const r = (l, v, cls = '') => `<tr class="${cls}"><td>${l}</td><td class="n">${mm(v)}</td></tr>`;
+  $('isTable').innerHTML = r(L1.goods, I.goods) + r(L1.services, I.services) + r(L1.returns, -I.returns) + r(L1.net, I.netRevenue, 'tot') + r(L1.cogs, -I.cogs) + r(L1.gp, I.grossProfit, 'tot') + `<tr class="sub"><td colspan="2">${L1.opex}</td></tr>` + I.expenses.map(e => r('&nbsp;&nbsp;' + acct(e.account), -e.cents)).join('') + r(L1.totalOpex, -I.totalOpex) + r(L1.ni, I.netIncome, 'tot');
+  $('bsTable').innerHTML = `<tr class="sub"><td colspan="2">${L2.assets}</td></tr>` + Bs.assets.map(a => r(acct(a.account), a.cents)).join('') + r(L2.ta, Bs.totalAssets, 'tot') + `<tr class="sub"><td colspan="2">${L2.liab}</td></tr>` + Bs.liabilities.map(a => r(acct(a.account), a.cents)).join('') + r(L2.tl, Bs.totalLiabilities) + `<tr class="sub"><td colspan="2">${L2.equity}</td></tr>` + Bs.equity.map(a => r(a.account === 'RE' ? cname(a.name) : acct(a.account), a.cents)).join('') + r(L2.te, Bs.totalEquity) + r(L2.tle, Bs.totalLiabilities + Bs.totalEquity, 'tot') + `<tr><td>${L2.balanced}</td><td class="n">${tag(Bs.balanced ? 'OK' : 'BREAK')}</td></tr>`;
+  $('cfTable').innerHTML = `<tr class="sub"><td colspan="2">${L3.direct}</td></tr>` + r(L3.cust, C.fromCustomers) + r(L3.ap, C.toSuppliersAP) + r(L3.reap + ' ⚡', C.reapPurchases) + (C.other ? r(L3.other, C.other) : '') + r(L3.cfo, C.operating, 'tot') + r(L3.inv, C.investing) + r(L3.fin, C.financing) + r(L3.net, C.netChange, 'tot') + r(L3.beg, C.beginning) + r(L3.end, C.ending, 'tot') +
+    `<tr class="sub"><td colspan="2">${L3.indirect}</td></tr>` + r(L3.ni, C.indirect.netIncome) + r(L3.dar, C.indirect.deltaAR) + r(L3.ddef, C.indirect.deltaDeferred) + r(L3.dap, C.indirect.deltaAP) + r(L3.dun, C.indirect.deltaUnapplied) + r(L3.cfo, C.indirect.operating, 'tot') + `<tr><td>${L3.ties}</td><td class="n">${tag(C.ties && C.indirectTies ? 'OK' : 'BREAK')}</td></tr>`;
+  $('tbTable').innerHTML = `<tr><th>${t('account')}</th><th class="n">${t('debit')}</th><th class="n">${t('credit')}</th></tr>` + TB.rows.map(x => `<tr><td>${x.account} ${cname(x.name)}</td><td class="n">${x.debit ? money(x.debit) : ''}</td><td class="n">${x.credit ? money(x.credit) : ''}</td></tr>`).join('') + `<tr class="tot"><td>${t('total')} ${tag(TB.balanced ? 'OK' : 'BREAK')}</td><td class="n">${money(TB.totalDebit)}</td><td class="n">${money(TB.totalCredit)}</td></tr>`;
+}
+
+function renderARR() {
+  const A = S.aging;
+  $('agingTable').innerHTML = `<tr><th>${t('top')}</th><th>ID</th><th>${t('customer')}</th>${A.buckets.map(b => `<th class="n">${t(b)}</th>`).join('')}<th class="n">${t('grand')}</th><th class="n">${t('grossPD')}</th><th class="n">${t('pctPD')}</th><th>${t('analyst')}</th><th>${t('rep')}</th><th>${t('hold')}</th></tr>` +
+    A.rows.map(r => `<tr><td>${r.top}</td><td class="small muted">${r.customerId}</td><td><b>${esc(r.name)}</b></td>${A.buckets.map(b => `<td class="n">${r[b] ? money(r[b]) : ''}</td>`).join('')}<td class="n"><b>${money(r.total)}</b></td><td class="n">${money(r.pastDue)}</td><td class="n">${r.total ? r.pctPastDue + '%' : ''}</td><td class="small">${r.analyst}</td><td class="small">${esc(r.rep)}</td><td>${r.creditHold ? tag('Y', 'bad') : 'N'}</td></tr>`).join('') +
+    `<tr class="tot"><td></td><td></td><td>${t('grand')}</td>${A.buckets.map(b => `<td class="n">${money(A.totals[b])}</td>`).join('')}<td class="n">${money(A.totals.total)}</td><td class="n">${money(A.totals.pastDue)}</td><td class="n">${A.totals.total ? Math.round(A.totals.pastDue / A.totals.total * 100) + '%' : ''}</td><td colspan="3">GL 1100 ${money(A.glAR)} ${tag(A.ties ? 'OK' : 'BREAK')}</td></tr>`;
+  $('rfTable').innerHTML = `<tr><th>${t('date')}</th><th class="n">${t('begin')}</th><th class="n">+ ${t('billed')}</th><th class="n">− ${t('collections')}</th><th class="n">− ${t('credits')}</th><th class="n">${t('end')}</th><th></th></tr>` +
+    S.rollforward.rows.slice().reverse().map(r => `<tr><td>${r.date}</td><td class="n">${money(r.begin)}</td><td class="n">${r.billed ? money(r.billed) : ''}</td><td class="n">${r.collected ? money(r.collected) : ''}</td><td class="n">${r.credits ? money(r.credits) : ''}</td><td class="n"><b>${money(r.end)}</b></td><td class="small muted">${r.moved ? '' : t('noMove')}</td></tr>`).join('');
+  const sel = $('stCust');
+  const opts = S.portfolio.customers.map(c => `<option value="${c.id}">${esc(c.legalName)}</option>`).join('');
+  if (sel.dataset.sig !== opts) { const v = sel.value; sel.innerHTML = opts; sel.dataset.sig = opts; if (v) sel.value = v; loadStatement(); }
+}
+async function loadStatement() {
+  const st = await api('/api/customer-statement', { customerId: $('stCust').value });
+  $('stBody').innerHTML = `<div class="small muted">${esc(st.customer.legalName)} · ID ${st.customer.id} · ${t('rep')} ${esc(st.customer.salesRep)} · ${t('analyst')} ${st.customer.analyst} · ${lang === 'es' ? 'al' : 'as of'} ${st.asOf}</div><table style="margin-top:6px"><tr><th>${t('date')}</th><th>${t('type')}</th><th>${t('ref')}</th><th>${t('due')}</th><th class="n">${t('debit')}</th><th class="n">${t('credit')}</th><th class="n">${t('balance')}</th></tr>` +
+    st.tx.map(x => `<tr><td>${x.date}</td><td>${x.type}</td><td class="small">${x.ref}</td><td>${x.due || ''}</td><td class="n">${x.debit ? money(x.debit) : ''}</td><td class="n">${x.credit ? money(x.credit) : ''}</td><td class="n">${money(x.balance)}</td></tr>`).join('') + `<tr class="tot"><td colspan="6">${t('balance')}</td><td class="n">${money(st.balance)}</td></tr></table>`;
+}
+
+function renderOrders() {
+  const custOpts = S.portfolio.customers.map(c => `<option value="${c.id}">${esc(c.legalName)}${c.creditHold ? ' (HOLD)' : ''}</option>`).join('');
+  if ($('oCust').dataset.sig !== custOpts) { const v = $('oCust').value; $('oCust').innerHTML = custOpts; $('oCust').dataset.sig = custOpts; if (v) $('oCust').value = v; }
+  $('ordTable').innerHTML = `<tr><th>${t('order')}</th><th>${t('customer')}</th><th>${t('description')}</th><th>${t('type')}</th><th class="n">${t('amount')}</th><th>${t('bookedOn')}</th><th>${t('trigger')}</th><th class="n">${t('recognized')}</th><th>${t('invoice')}</th><th>${t('status')}</th></tr>` +
+    S.orders.slice().reverse().map(o => `<tr><td>${o.id}</td><td>${esc(custName(o.customerId))}</td><td>${esc(o.description)}</td><td>${o.type}</td><td class="n">${money(o.amountCents)}</td><td>${o.bookedDate}</td><td>${o.type === 'GOODS' ? o.deliveryDate : o.serviceStart + ' → ' + o.serviceEnd}</td><td class="n">${money(o.recognizedCents)}</td><td>${o.invoiceId || ''}</td><td>${tag(o.status)} <span class="small muted">${(o.validation || []).join(', ')}</span>${o.status === 'VALIDATION_FAILED' ? ` <button class="sm" data-reval="${o.id}">↻</button>` : ''}</td></tr>`).join('');
+  const RV = S.revenue;
+  $('revTable').innerHTML = `<tr><th>${t('order')}</th><th>${t('customer')}</th><th>${t('type')}</th><th>${t('schedule')}</th><th class="n">${t('contract')}</th><th class="n">${t('billed')}</th><th class="n">${t('recognized')}</th><th class="n">${t('deferred')}</th><th class="n">${t('unbilled')}</th></tr>` +
+    RV.rows.map(r => `<tr><td>${r.orderId}</td><td>${esc(r.customer)}</td><td>${r.type}</td><td class="small">${r.schedule}</td><td class="n">${money(r.contract)}</td><td class="n">${money(r.billed)}</td><td class="n">${money(r.recognized)}</td><td class="n">${money(r.deferred)}</td><td class="n">${money(r.unbilled)}</td></tr>`).join('') +
+    `<tr class="tot"><td colspan="4">${t('total')}</td><td class="n">${money(RV.totals.contract)}</td><td class="n">${money(RV.totals.billed)}</td><td class="n">${money(RV.totals.recognized)}</td><td class="n">${money(RV.totals.deferred)}</td><td></td></tr>` +
+    `<tr><td colspan="6">GL 4000+4010 / GL 2100</td><td class="n">${money(RV.gl.revenue)} ${tag(RV.revenueTies ? 'OK' : 'BREAK')}</td><td class="n">${money(RV.gl.deferred)} ${tag(RV.deferredTies ? 'OK' : 'BREAK')}</td><td></td></tr>`;
+}
+
+function renderAR() {
+  $('prioTable').innerHTML = `<tr><th>#</th><th>${t('customer')}</th><th>${t('invoice')}</th><th class="n">${t('amountDue')}</th><th>${t('dueDate')}</th><th class="n">${t('dpd')}</th><th class="n">${t('score')}</th><th>${t('action')}</th><th>${t('act')}</th></tr>` +
+    S.priorities.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.customer)} ${p.creditHold ? tag('HOLD', 'bad') : ''}</td><td>${p.invoiceId}</td><td class="n">${money(p.outstandingCents)}</td><td>${p.dueDate}</td><td class="n">${p.daysPastDue || ''}</td><td class="n">${p.score.toLocaleString()}</td><td>${tag(p.action)}${p.promise ? ` <span class="small muted">→ ${p.promise.date}</span>` : ''}</td><td><button class="sm" data-hold="${p.customerId}" data-v="${!p.creditHold}">${p.creditHold ? t('holdOff') : t('holdOn')}</button> <button class="sm" data-ptp="${p.invoiceId}">${t('ptp')}</button> ${p.status === 'DISPUTED' || p.daysPastDue > 90 ? `<button class="sm" data-cn="${p.invoiceId}">${t('cn')}</button>` : ''}</td></tr>`).join('');
+  const custById = Object.fromEntries(S.portfolio.customers.map(c => [c.id, c]));
+  const lastCol = id => S.collections.filter(c => c.invoiceId === id).at(-1);
+  $('arTable').innerHTML = `<tr><th>${t('top')}</th><th>${t('customer')}</th><th>${t('invoice')}</th><th class="n">${t('original')}</th><th class="n">${t('amountDue')}</th><th>${t('dueDate')}</th><th class="n">${t('dpd')}</th><th>${t('status')}</th><th>${t('collStatus')}</th><th>${t('eligibility')}</th></tr>` +
+    S.portfolio.invoices.slice().sort((a, b) => (custById[a.customerId]?.top || 99) - (custById[b.customerId]?.top || 99)).map(i => { const c = lastCol(i.id), cu = custById[i.customerId]; return `<tr><td>${cu?.top ?? ''}</td><td><b>${esc(cu?.legalName)}</b></td><td>${i.id}</td><td class="n">${money(i.originalCents)}</td><td class="n">${money(i.outstandingCents)}</td><td>${i.dueDate}</td><td class="n">${i.daysPastDue || ''}</td><td>${tag(i.status)}</td><td>${c ? tag(c.status.replace('COLLECTION_', '')) + (c.failureCode ? ' <span class="small muted">' + c.failureCode + '</span>' : '') : ''}</td><td>${i.eligibility.eligible ? tag('ELIGIBLE', 'ok') : '<span class="small muted">' + i.eligibility.reasons.join(', ') + '</span>'}</td></tr>`; }).join('');
+}
+
+function renderCashApp() {
+  const reapCharges = S.purchases.filter(p => p.status === 'COMPLETED');
+  $('cashTable').innerHTML = `<tr><th>${t('payment')}</th><th>${t('date')}</th><th>${t('customer')}</th><th>${t('invoice')}</th><th class="n">${t('received')}</th><th class="n">${t('applied')}</th><th>${t('bankRef')}</th><th>${t('status')}</th></tr>` +
+    S.payments.slice().reverse().map(p => `<tr><td class="small">${p.id}</td><td>${p.date}</td><td>${esc(custName(p.customerId))}</td><td>${p.invoiceRef}</td><td class="n">${money(p.receivedCents)}</td><td class="n">${money(p.appliedCents)}</td><td class="small muted">${p.bankRef}</td><td>${tag(p.appliedCents === p.receivedCents ? 'APPLICATION_POSTED' : 'UNAPPLIED')}</td></tr>`).join('') +
+    (reapCharges.length ? `<tr class="sub"><td colspan="8">⚡ Reap charges matched to funding (outflows)</td></tr>` + reapCharges.slice().reverse().map(p => `<tr><td class="small">${p.id}</td><td>${p.settledDate}</td><td>${esc(p.merchant)}</td><td class="small">${[...new Set((p.fundingTrace || []).map(x => x.invoiceId))].join(', ')}</td><td class="n">(${money(p.chargedCents)})</td><td class="n">${money(p.chargedCents)}</td><td class="small muted">${(p.checkoutId || '').slice(0, 8)}</td><td>${tag(p.reapVerified?.ok ? 'VERIFIED' : 'POSTED', 'ok')}</td></tr>`).join('') : '');
+}
+
+function renderTreasury() {
+  $('budgets').innerHTML = `<div class="card"><b>${t('k').cash}</b><div class="kpi" style="border:0;padding:0;margin-top:6px"><div class="v">${money(S.cash.cashCents)}</div></div><div class="small muted">${t('reserve')} ${money(S.cash.reserveCents)} · ${t('collections')} ${money(S.cash.collectedCents)} · AP ${money(S.cash.apPaidCents)} · Reap ${money(S.cash.reapPaidCents)}</div></div>` +
+    S.budgets.map(b => { const tot = b.allocatedCents || 1; return `<div class="card"><div class="row"><b>${esc(cname(b.name))}</b><span class="muted small">${b.id} · ${b.bps / 100}%</span></div><div class="kpi" style="border:0;padding:0;margin-top:6px"><div class="l">${t('k').available}</div><div class="v">${money(b.availableCents)}</div></div><div class="bar"><i class="s" style="width:${b.spentCents / tot * 100}%"></i><i class="r" style="width:${b.reservedCents / tot * 100}%"></i></div><div class="small muted">${t('allocated')} ${money(b.allocatedCents)} · ${t('consumed')} ${money(b.spentCents)} · ${t('reserved')} ${money(b.reservedCents)}</div></div>`; }).join('');
+  $('allocTable').innerHTML = `<tr><th>${t('date')}</th><th>${t('payment')}</th><th>${t('invoice')}</th><th>${t('costCenter')}</th><th class="n">${t('amount')}</th><th class="n">${t('consumed')}</th><th>${t('policy')}</th></tr>` +
+    S.allocations.slice(-160).reverse().map(a => `<tr><td>${a.date}</td><td class="small">${a.paymentId}</td><td>${a.invoiceId}</td><td>${a.costCenter}</td><td class="n">${money(a.cents)}</td><td class="n">${money(a.consumedCents)}</td><td class="small muted">${a.policyVersion}</td></tr>`).join('');
+}
+
+function renderSpend() {
+  const day = d => (lang === 'es' ? ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'])[d];
+  $('recTable').innerHTML = `<tr><th>${t('rule')}</th><th></th><th>${t('costCenter')}</th><th>${t('vendor')}</th><th>${t('freq')}</th><th class="n">${t('cap')}</th><th class="n">${t('runs')}</th><th>${t('last')}</th><th>${t('status')}</th><th>${t('act')}</th></tr>` +
+    S.recurring.map(r => { const v = S.vendors.find(x => x.sku === r.vendorSku); const last = r.runs.at(-1); return `<tr><td>${r.id}</td><td>${esc(cname(r.name))}</td><td>${r.costCenter}</td><td class="small">${esc(v?.product)} ×${r.quantity}<div class="muted">${v?.domain}</div></td><td>${r.frequency === 'WEEKLY' ? day(r.weekday) : (lang === 'es' ? 'día ' : 'day ') + r.day}</td><td class="n">${money(r.capCents)}</td><td class="n">${r.runs.length}</td><td>${last ? `${last.date} ${tag(last.status)}` : ''}</td><td>${tag(r.active ? 'ACTIVE' : 'PAUSED')}</td><td><button class="sm" data-rrun="${r.id}">${t('run')}</button> <button class="sm" data-rtog="${r.id}" data-v="${!r.active}">${r.active ? t('pause') : t('resume')}</button></td></tr>`; }).join('');
+  const ccSel = $('cc'), ccv = ccSel.value || 'IT';
+  ccSel.innerHTML = S.budgets.map(b => `<option value="${b.id}">${esc(cname(b.name))} — ${money(b.availableCents)}</option>`).join('');
+  ccSel.value = ccv;
+  renderVendors();
+}
+function renderVendors() {
+  const cc = $('cc').value, q = $('vq').value.toLowerCase();
+  $('vendors').innerHTML = S.vendors.filter(v => v.costCenter === cc && (!q || (v.product + ' ' + v.domain + ' ' + v.category).toLowerCase().includes(q))).map(v => `<div class="p"><div class="small muted">${esc(v.category)}</div><div>${esc(v.product)}</div><div class="small muted">${esc(v.domain)}</div><div class="row" style="justify-content:space-between;margin-top:auto"><b>${money(v.unitCents)}</b><button class="sm primary" data-sku="${esc(v.sku)}">${t('buy')}</button></div></div>`).join('') || '<span class="muted">—</span>';
+}
+
+function renderAP() {
+  $('purTable').innerHTML = `<tr><th>ID</th><th>${t('date')}</th><th>${t('kind')}</th><th>${t('costCenter')}</th><th>${t('product')}</th><th class="n">${t('total')}</th><th>${t('status')}</th><th>${t('approver')}</th><th>${t('je')}</th><th>${t('trace')}</th><th>${t('act')}</th></tr>` +
+    S.purchases.slice().reverse().map(p => {
+      let act = '';
+      if (p.status === 'NEEDS_APPROVAL') act = `<button class="sm" data-act="approve" data-id="${p.id}">${t('approve')}</button> <button class="sm" data-act="reject" data-id="${p.id}">${t('reject')}</button>`;
+      else if (p.status === 'APPROVED') act = `<button class="sm" data-act="retry" data-id="${p.id}">${t('retry')}</button>`;
+      else if (p.status === 'REQUIRES_ACTION' && p.approvalUrl) act = `<a class="ext" href="${esc(p.approvalUrl)}" target="_blank">${t('openApproval')}</a> <button class="sm" data-act="refresh" data-id="${p.id}">${t('refresh')}</button>`;
+      const note = p.rejectReason || p.lastError || (p.blocked ? t('blocked') : '') || (p.merchantOrderId ? 'order ' + p.merchantOrderId : '');
+      return `<tr><td class="small">${p.id}</td><td>${p.date || ''}</td><td>${tag(p.kind || 'ADHOC', 'reap')}${p.ruleId ? ` <span class="small muted">${p.ruleId}</span>` : ''}${p.orderId ? ` <span class="small muted">${p.orderId}</span>` : ''}</td><td>${p.costCenter}</td><td>${esc(p.productName)} ×${p.quantity}<div class="small muted">${esc(p.merchant || '')} ${p.approvedVendor ? '<span class="pill">supported</span>' : '<span class="pill">quote only</span>'}</div></td><td class="n">${money(p.chargedCents ?? p.totalCents)}</td><td>${tag(p.status)}<div class="small muted" style="white-space:normal;max-width:260px">${esc(note)}</div></td><td class="small">${esc(p.approver || '')}</td><td class="small mono">${p.je || ''}</td><td class="small">${[...new Set((p.fundingTrace || []).map(x => x.invoiceId))].join('<br>')}</td><td>${act}</td></tr>`;
+    }).join('');
+  $('apTable').innerHTML = `<tr><th>ID</th><th>${t('vendor')}</th><th>${t('category')}</th><th>${t('costCenter')}</th><th class="n">${t('amount')}</th><th>${t('dueDate')}</th><th>${t('status')}</th><th>${t('paid')}</th><th>${t('je')}</th><th>${t('trace')}</th></tr>` +
+    S.apBills.slice().reverse().map(b => `<tr><td class="small">${b.id}</td><td>${esc(b.vendor)}</td><td>${b.category}</td><td>${b.costCenter}</td><td class="n">${money(b.cents)}</td><td>${b.dueDate}</td><td>${tag(b.status)}</td><td>${b.paidDate || ''}</td><td class="small mono">${b.accrualJE || ''}${b.paymentJE ? '<br>' + b.paymentJE : ''}</td><td class="small">${[...new Set((b.fundingTrace || []).map(x => x.invoiceId))].slice(0, 4).join(', ')}</td></tr>`).join('');
+}
+
+function renderJournal() {
+  $('jeTable').innerHTML = `<tr><th>${t('je')}</th><th>${t('date')}</th><th>${t('type')}</th><th>${t('memo')}</th><th>${t('lines')}</th><th>${t('preparer')}</th><th>${t('approver')}</th><th>${t('hash')}</th></tr>` +
+    S.journal.map(j => `<tr><td class="mono">${j.id}</td><td>${j.date}</td><td class="small">${j.type}</td><td class="wrap small">${esc(j.memo)}</td><td class="mono">${j.lines.map(l => l.debit ? `Dr ${acct(l.account)} ${money(l.debit)}` : `&nbsp;&nbsp;&nbsp;Cr ${acct(l.account)} ${money(l.credit)}`).join('<br>')}</td><td class="small">${esc(j.preparer)}</td><td class="small">${esc(j.approver || '')}</td><td class="small muted mono">${j.hash.slice(0, 10)}…</td></tr>`).join('');
+}
+
+function renderSOX() {
+  $('soxTable').innerHTML = `<tr><th>ID</th><th>${t('area')}</th><th>${t('objective')}</th><th>${t('nature')}</th><th>${t('freqC')}</th><th>${t('owner')}</th><th>${t('evidence')}</th><th>${t('result')}</th></tr>` +
+    S.sox.map(c => `<tr><td class="mono">${c.id}</td><td class="small">${c.area}</td><td class="wrap small">${esc(c.objective)}</td><td class="small">${c.type} / ${c.nature}</td><td class="small">${c.frequency}</td><td class="small">${esc(c.owner)}</td><td class="wrap small">${esc(c.evidence)}</td><td>${tag(c.ok ? 'EFFECTIVE' : 'INEFFECTIVE')}</td></tr>`).join('');
+  $('reconTable').innerHTML = `<tr><th>${t('check')}</th><th class="n">A</th><th class="n">B</th><th>${t('result')}</th></tr>` + S.reconciliation.checks.map(c => `<tr><td>${c.id}</td><td class="n">${c.a == null ? '' : money(c.a)}</td><td class="n">${c.b == null ? '' : money(c.b)}</td><td>${tag(c.ok ? 'OK' : 'BREAK')}</td></tr>`).join('');
+  $('excTable').innerHTML = `<tr><th>${t('date')}</th><th>${t('entity')}</th><th>${t('reason')}</th><th>${t('severity')}</th><th>${t('status')}</th><th></th></tr>` +
+    S.reconciliation.exceptions.slice().reverse().map(e => `<tr><td>${e.date || ''}</td><td>${e.entityType} <span class="small muted">${e.entityId}</span></td><td>${esc(e.reason)}</td><td>${tag(e.severity)}</td><td>${tag(e.status)} <span class="small muted">${esc(e.resolution || '')}</span></td><td>${e.status === 'OPEN' ? `<button class="sm" data-resolve="${e.id}">${t('resolve')}</button>` : ''}</td></tr>`).join('');
+}
+
+function renderAgent() {
+  $('suggest').innerHTML = t('suggest').map(s => `<button class="sm" data-suggest="${esc(s)}">${esc(s)}</button>`).join('');
+  $('chat').innerHTML = chatLog.map(m => `<div class="msg ${m.role}">${esc(m.content)}${m.steps?.length ? `<div class="stepsx">⚙ ${m.steps.map(s => s.tool + (s.ok ? '' : ' ✗')).join(' → ')}</div>` : ''}</div>`).join('');
+  $('chat').scrollTop = 1e9;
+}
+function renderAudit() {
+  $('auditTable').innerHTML = `<tr><th>${t('time')}</th><th>${t('date')}</th><th>${t('entity')}</th><th>${t('event')}</th><th>${t('transition')}</th><th>${t('actor')}</th><th>${t('hash')}</th></tr>` +
+    S.audit.map(a => `<tr><td class="small">${a.ts.slice(11, 19)}</td><td>${a.date || ''}</td><td>${a.entityType} <span class="small muted">${a.entityId}</span></td><td>${a.event}</td><td>${a.from ? a.from + ' → ' + a.to : ''}</td><td>${a.actor}</td><td class="small muted mono">${a.hash.slice(0, 10)}…</td></tr>`).join('');
+}
+function renderSetup() {
+  const e = S.enrollment;
+  $('enroll').innerHTML = e ? `<div class="row">${tag(e.status)} <span class="small muted">${e.id}</span> ${e.nextAction?.url ? `<a class="ext" href="${esc(e.nextAction.url)}" target="_blank">${t('openEnroll')}</a>` : ''} <button id="enrollRefresh">${t('refresh')}</button> <button id="enrollStart">${t('startEnroll')}</button></div>` : `<div class="row"><span class="muted">${t('noEnroll')}</span> <button class="primary" id="enrollStart">${t('startEnroll')}</button></div>`;
+  $('simNote').textContent = S.simulateCheckout ? t('simOn') : t('simOff');
+}
+
+async function advance(days, btn) {
+  const r = await api('/api/advance', { days });
+  await refresh();
+  if (btn !== 'auto') { const s = r.days.reduce((a, x) => ({ b: a.b + x.billed.length, c: a.c + x.collectedCents, p: a.p + x.paid.length }), { b: 0, c: 0, p: 0 }); toast(`${t('advanced')} ${r.asOf}\n🧾 ${s.b} · 💰 ${money(s.c)} · 📤 ${s.p} · ⚡ Reap ${r.reapQueued}`); }
+  return r;
+}
+
+document.addEventListener('click', async ev => {
+  const el = ev.target.closest('button, a[data-tab]');
+  if (!el) return;
+  const d = el.dataset;
+  if (d.tab || d.goto) { tab = d.tab || d.goto; location.hash = tab; render(); }
+  if (d.adv) busy(el, () => advance(+d.adv));
+  if (d.act) busy(el, async () => { const p = await api('/api/purchases/' + d.act, { id: d.id }); await refresh(); toast(`${p.id}: ${p.status}`); });
+  if (d.sku) busy(el, async () => { const p = await api('/api/purchases', { costCenter: $('cc').value, vendorSku: d.sku, quantity: Number($('qty').value) || 1, reason: 'Operator request' }); await refresh(); toast(`${p.productName}\n${p.id}: ${p.status} — ${money(p.chargedCents ?? p.totalCents)}${p.rejectReason ? '\n' + p.rejectReason : ''}${p.blocked ? '\n' + t('blocked') : ''}${p.je ? '\n' + p.je : ''}`); });
+  if (d.variant) busy(el, async () => { const p = await api('/api/purchases', { costCenter: $('cc').value, variantId: d.variant, productName: d.name, merchant: d.merchant, quantity: 1, reason: 'Catalog quote' }); await refresh(); toast(`${p.id}: ${money(p.totalCents)} — ${p.rejectReason || p.status}`); });
+  if (d.hold) busy(el, async () => { await api('/api/credit-hold', { customerId: d.hold, hold: d.v === 'true' }); await refresh(); });
+  if (d.ptp) busy(el, async () => { const dt = new Date(Date.parse(S.asOf) + 7 * 864e5).toISOString().slice(0, 10); await api('/api/promise', { invoiceId: d.ptp, date: dt }); await refresh(); });
+  if (d.cn) busy(el, async () => { await api('/api/credit-note', { invoiceId: d.cn, reason: 'Dispute settlement' }); await refresh(); });
+  if (d.reval) busy(el, async () => { await api('/api/orders/revalidate', { id: d.reval }); await refresh(); });
+  if (d.resolve) busy(el, async () => { await api('/api/exceptions/resolve', { id: d.resolve, note: 'Reviewed by controller' }); await refresh(); });
+  if (d.rrun) busy(el, async () => { const r = await api('/api/recurring/run', { id: d.rrun }); await refresh(); toast(`${r.id}: ${r.runs.at(-1)?.status || '—'}`); });
+  if (d.rtog) busy(el, async () => { await api('/api/recurring/toggle', { id: d.rtog, active: d.v === 'true' }); await refresh(); });
+  if (d.suggest) { $('ask').value = d.suggest; $('send').click(); }
+  if (d.ecl) busy(el, async () => { await api('/api/ecl/approve', { id: d.ecl }); await refresh(); toast('ASC 326 ok'); });
+  if (el.id === 'eclPropose') busy(el, async () => { await api('/api/ecl/propose', {}); await refresh(); });
+  if (el.id === 'enrollStart') busy(el, async () => { const e = await api('/api/enrollment', {}); if (e.nextAction?.url) window.open(e.nextAction.url, '_blank'); await refresh(); });
+  if (el.id === 'enrollRefresh') busy(el, async () => { await api('/api/enrollment/refresh', {}); await refresh(); });
+});
+$('cc').onchange = renderVendors; $('vq').oninput = renderVendors;
+$('opStep').onchange = renderOps; $('opLevel').onchange = renderOps; $('opQ').oninput = renderOps;
+$('fsMonth').onchange = renderFS; $('stCust').onchange = loadStatement;
+$('lang').onclick = () => { lang = lang === 'en' ? 'es' : 'en'; render(); };
+$('reset').onclick = e => busy(e.target, async () => { stopAuto(); S = await api('/api/reset', {}); chatLog = []; fsData = null; $('stCust').dataset.sig = ''; render(); });
+$('closeBtn').onclick = e => busy(e.target, async () => { stopAuto(); const r = await api('/api/close', {}); await refresh(); tab = 'master'; render(); toast(`${t('closed')} ${r.month}: AR ${money(r.endingAR)} · Cash ${money(r.endingCash)}`); });
+$('collect').onclick = e => busy(e.target, async () => { const r = await api('/api/collect', {}); S = r.state; render(); const ok = r.results.filter(x => x.confirmedCents), bad = r.results.filter(x => x.failed); toast(`✓ ${ok.length} (${money(ok.reduce((a, x) => a + x.confirmedCents, 0))}) · ✗ ${bad.length}${ok.length + bad.length === 0 ? '\n' + (lang === 'es' ? 'Nada vence hoy (un cargo por factura al día) — avanza la fecha o activa Autopilot.' : 'Nothing due today (one debit per invoice per day) — advance the date or turn on Autopilot.') : ''}`); });
+$('useEnroll').onclick = e => busy(e.target, async () => { await api('/api/enrollment/use', { enrollmentId: $('enrollId').value.trim() }); await refresh(); });
+$('oCreate').onclick = e => busy(e.target, async () => { const type = $('oType').value, date = $('oDate').value; const o = await api('/api/orders', { customerId: $('oCust').value, description: $('oDesc').value, type, amountCents: Math.round(Number($('oAmt').value) * 100), deliveryDate: type === 'GOODS' ? date : null, serviceStart: type === 'SERVICE' ? date : null, serviceEnd: type === 'SERVICE' ? $('oEnd').value : null }); await refresh(); toast(`${o.id}: ${o.status}${o.validation?.length ? '\n' + o.validation.join(', ') : ''}`); });
+$('search').onclick = e => busy(e.target, async () => { const r = await api('/api/search', { query: $('q').value }); $('results').innerHTML = r.map(p => `<div class="p"><img src="${esc(p.imageUrl)}" alt=""><div>${esc(p.name)}</div><div class="small muted">${esc(p.merchant)}</div><div class="row" style="justify-content:space-between;margin-top:auto"><b>${money(p.unitCents)}</b><button class="sm" data-variant="${p.variantId}" data-name="${esc(p.name)}" data-merchant="${esc(p.merchant)}">${t('quote')}</button></div></div>`).join('') || '<span class="muted">—</span>'; });
+$('send').onclick = e => busy(e.target, async () => { const q = $('ask').value.trim(); if (!q) return; chatLog.push({ role: 'user', content: q }); $('ask').value = ''; render(); const r = await api('/api/agent', { lang, messages: chatLog.map(({ role, content }) => ({ role, content })) }); chatLog.push({ role: 'assistant', content: r.text, steps: r.steps }); await refresh(); });
+$('ask').addEventListener('keydown', e => { if (e.key === 'Enter') $('send').click(); });
+
+function stopAuto() { if (auto) { clearInterval(auto); auto = null; } $('autoBtn').classList.remove('on'); $('autoBtn').textContent = '▶ Autopilot'; }
+$('autoBtn').onclick = () => {
+  if (auto) return stopAuto();
+  $('autoBtn').classList.add('on'); $('autoBtn').textContent = '⏸ Autopilot';
+  let inflight = false;
+  auto = setInterval(async () => {
+    if (inflight) return; inflight = true;
+    try { const r = await advance(1, 'auto'); if (r.atMonthEnd) { stopAuto(); toast(lang === 'es' ? 'Fin de mes — revisa el checklist y cierra.' : 'Month end — review the checklist and close.'); } }
+    catch (e) { stopAuto(); toast('⚠ ' + e.message); } finally { inflight = false; }
+  }, 2500);
+};
+
+refresh().catch(e => toast(e.message));
+setInterval(() => {
+  if (!S || document.hidden || auto) return;
+  const waiting = (S.enrollment && S.enrollment.status !== 'ACTIVE') || S.purchases.some(p => ['REQUIRES_ACTION', 'PROCESSING'].includes(p.status)) || S.reapQueue.pending || S.reapQueue.running;
+  if (waiting) refresh().catch(() => {});
+}, 4000);
+</script>
+</body>
+</html>

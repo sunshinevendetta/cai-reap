@@ -1,0 +1,14 @@
+{
+  "name": "cai",
+  "version": "0.1.0",
+  "description": "CAI - Collection and Application Intelligence. Cash-backed agentic spend on Reap.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20.6" },
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --watch --env-file=.env src/server.js",
+    "reset": "node -e \"require('fs').rmSync('data/state.json',{force:true})\"",
+    "test": "node --test test/*.test.js"
+  }
+}
