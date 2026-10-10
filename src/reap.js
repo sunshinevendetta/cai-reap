@@ -39,6 +39,7 @@ export const reap = {
       body: { source: 'EXTERNAL', owner: { type: 'CLIENT_REFERENCE', id: ownerId, email }, presentation: { type: 'REDIRECT', returnUrl } },
     }),
   getEnrollment: id => call('GET', `/agentic/enrollments/${id}`),
+  listEnrollments: ownerId => call('GET', `/agentic/enrollments?ownerType=CLIENT_REFERENCE&ownerId=${encodeURIComponent(ownerId)}&limit=50`),
 
   // Discovery
   searchProducts: ({ query, maxPrice, limit = 8 }) =>

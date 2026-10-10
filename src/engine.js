@@ -759,6 +759,12 @@ export async function startEnrollment() {
 
 export async function refreshEnrollment() {
   const s = load();
+  // Never lose a completed card: adopt any ACTIVE enrollment on the account.
+  if (s.enrollment?.status !== 'ACTIVE') {
+    const list = await reap.listEnrollments('cai-company-us11').catch(() => null);
+    const act = (list?.items || []).find(x => x.status === 'ACTIVE');
+    if (act) s.enrollment = { id: act.id, status: 'PENDING_REFRESH', nextAction: null, createdAt: act.createdAt };
+  }
   if (!s.enrollment) return null;
   const e = await reap.getEnrollment(s.enrollment.id);
   if (e.status !== s.enrollment.status) {
