@@ -605,6 +605,7 @@ function renderSetup() {
   const e = S.enrollment;
   $('enroll').innerHTML = e ? `<div class="row">${tag(e.status)} <span class="small muted">${e.id}</span> ${e.nextAction?.url ? `<a class="ext" href="${esc(e.nextAction.url)}" target="_blank">${t('openEnroll')}</a>` : ''} <button id="enrollRefresh">${t('refresh')}</button> <button id="enrollStart">${t('startEnroll')}</button></div>` : `<div class="row"><span class="muted">${t('noEnroll')}</span> <button class="primary" id="enrollStart">${t('startEnroll')}</button></div>`;
   $('simNote').textContent = S.simulateCheckout ? t('simOn') : t('simOff');
+  $('simNote').innerHTML += '<br><br><b>Reap sandbox test cards</b> (docs.reap.global → Agentic → Setup) — enter on the hosted page; OTP <b>456789</b> (email or SMS):<br>4622 9431 2313 7797 · CVC 640 · 12/27<br>4622 9431 2313 7805 · CVC 304 · 12/27<br>4622 9431 2313 7847 · CVC 698 · 12/27<br>Team card from the organizers email also works if provisioned. If verification fails, click "Enroll card with Reap" for a NEW session (a failed session cannot be reused).';
 }
 
 async function advance(days, btn) {
