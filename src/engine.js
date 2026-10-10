@@ -804,7 +804,7 @@ async function quoteFor(p, key) {
   let q;
   for (let attempt = 0; ; attempt++) {
     try { q = await reap.createQuote({ ...body, idempotencyKey: attempt ? `${key}:r${attempt}` : key }); break; } catch (e) {
-      const transient = e instanceof ReapError && (e.code === 'QUOTE_TEMPORARILY_UNAVAILABLE' || e.status === 503 || e.code === 'AGENTIC_SERVICE_UNAVAILABLE');
+      const transient = !(e instanceof ReapError) || e.code === 'QUOTE_TEMPORARILY_UNAVAILABLE' || e.status === 503 || e.code === 'AGENTIC_SERVICE_UNAVAILABLE'; // network drops included
       if (!transient || attempt >= 3) throw e;
       await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
     }
