@@ -400,7 +400,7 @@ function render() {
   $('asof').textContent = S.asOf;
   $('queueInfo').textContent = S.reapQueue.pending || S.reapQueue.running ? `${t('queue')}: ${S.reapQueue.pending}${S.reapQueue.running ? ' ⟳' : ''}` : '';
   const active = S.enrollment?.status === 'ACTIVE';
-  $('cardBanner').innerHTML = `<div class="banner ${active ? 'ok' : ''}">${active ? t('cardOk') : t('cardMissing')}</div>`;
+  $('cardBanner').innerHTML = active ? `<div class="banner ok">${t('cardOk')}</div>` : '';
   const K = t('k'), soxOk = S.sox.filter(c => c.ok).length;
   $('kpis').innerHTML = [[K.ar, S.aging.glAR, `${t('begAR')} ${money(cur.beginningAR)}`], [K.pastDue, P.totals.pastDueCents], [K.revenue, cur.revenue], [K.collected, cur.collections], [K.cash, S.cash.cashCents, `${t('reserve')} ${money(S.cash.reserveCents)}`], [K.netIncome, ST.income.netIncome], [K.available, B.reduce((a, b) => a + b.availableCents, 0)], [K.spent, R.totals.charged, (lang === 'es' ? 'Aprobado esperando tarjeta: ' : 'Approved, waiting for card: ') + money(S.purchases.filter(p => p.status === 'APPROVED').reduce((a, p) => a + (p.totalCents || 0), 0))], [K.sox, null, `${soxOk}/${S.sox.length}`]]
     .map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v == null ? `${soxOk}/${S.sox.length}` : mm(v)}</div>${d && v != null ? `<div class="d">${d}</div>` : ''}</div>`).join('');
