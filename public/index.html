@@ -290,7 +290,7 @@ const I18N = {
     suggest:['Summary','Advance 7 days','Who should we chase first?','Buy 2 keyboards for IT','Buy coffee for the office','Book a flight for sales','Financial statements','SOX controls','Can we close?'],
     time:'Time', event:'Event', transition:'Transition',
     setupTitle:'Company card enrollment (Reap Agentic)', setupBody:'Enroll the company card once. It is typed on Reap\'s hosted page — it never touches CAI or the agents. All agent purchases charge this enrollment (simulated in sandbox).',
-    startEnroll:'Enroll card with Reap', openEnroll:'Open Reap hosted page', enrollPh:'…or paste an existing enrollment ID', useEnroll:'Use enrollment', noEnroll:'No enrollment yet.',
+    startEnroll:'Enroll card with Reap', openEnroll:'Open Reap hosted page', enrollPh:'…or paste an existing enrollment ID', useEnroll:'Use enrollment', noEnroll:'No enrollment yet.', enrollDead:'This hosted session ended without a card. Start a new one and finish it on Reap\'s page (test card + OTP below) before it expires.',
     cardMissing:'⚠ Reap card not active — agent purchases are approved but wait for checkout. Open the "Reap card" tab and finish enrollment (sandbox card).', cardOk:'✓ Reap card ACTIVE — agents can complete purchases (simulated checkout).',
     blocked:'Waiting for Reap card enrollment.', simOn:'Sandbox simulated checkout is ON (X-Simulate-Checkout: COMPLETED).', simOff:'Hosted approval mode.',
     closed:'Month closed', advanced:'Advanced to', queue:'Reap queue',
@@ -361,7 +361,7 @@ const I18N = {
     suggest:['Resumen','Avanza 7 días','¿A quién cobramos primero?','Compra 2 teclados para TI','Compra café para la oficina','Reserva un vuelo para ventas','Estados financieros','Controles SOX','¿Podemos cerrar?'],
     time:'Hora', event:'Evento', transition:'Transición',
     setupTitle:'Registro de tarjeta corporativa (Reap Agentic)', setupBody:'Registra la tarjeta una sola vez. Se captura en la página de Reap — nunca pasa por CAI ni por los agentes. Todas las compras se cargan a este registro (simulado en sandbox).',
-    startEnroll:'Registrar tarjeta con Reap', openEnroll:'Abrir página de Reap', enrollPh:'…o pega un ID de registro existente', useEnroll:'Usar registro', noEnroll:'Sin registro todavía.',
+    startEnroll:'Registrar tarjeta con Reap', openEnroll:'Abrir página de Reap', enrollPh:'…o pega un ID de registro existente', useEnroll:'Usar registro', noEnroll:'Sin registro todavía.', enrollDead:'Esta sesión de Reap terminó sin tarjeta. Inicia una nueva y complétala en la página de Reap (tarjeta de prueba + OTP abajo) antes de que expire.',
     cardMissing:'⚠ Tarjeta Reap no activa — las compras se aprueban pero esperan checkout. Abre la pestaña "Tarjeta Reap" y completa el registro (tarjeta sandbox).', cardOk:'✓ Tarjeta Reap ACTIVA — los agentes pueden completar compras (checkout simulado).',
     blocked:'Esperando registro de tarjeta Reap.', simOn:'Checkout simulado de sandbox ACTIVO (X-Simulate-Checkout: COMPLETED).', simOff:'Modo de aprobación.',
     closed:'Mes cerrado', advanced:'Avanzado a', queue:'Cola Reap',
@@ -603,7 +603,8 @@ function renderAudit() {
 }
 function renderSetup() {
   const e = S.enrollment;
-  $('enroll').innerHTML = e ? `<div class="row">${tag(e.status)} <span class="small muted">${e.id}</span> ${e.nextAction?.url ? `<a class="ext" href="${esc(e.nextAction.url)}" target="_blank">${t('openEnroll')}</a>` : ''} <button id="enrollRefresh">${t('refresh')}</button> <button id="enrollStart">${t('startEnroll')}</button></div>` : `<div class="row"><span class="muted">${t('noEnroll')}</span> <button class="primary" id="enrollStart">${t('startEnroll')}</button></div>`;
+  const dead = e && e.status !== 'ACTIVE' && !e.pending;
+  $('enroll').innerHTML = e ? `<div class="row">${tag(e.status)} <span class="small muted">${e.id}</span> ${e.pending && e.nextAction?.url ? `<a class="ext" href="${esc(e.nextAction.url)}" target="_blank">${t('openEnroll')}</a>` : ''} <button id="enrollRefresh">${t('refresh')}</button> <button id="enrollStart"${dead ? ' class="primary"' : ''}>${t('startEnroll')}</button></div>${dead ? `<div class="small muted" style="margin-top:6px">${t('enrollDead')}</div>` : ''}` : `<div class="row"><span class="muted">${t('noEnroll')}</span> <button class="primary" id="enrollStart">${t('startEnroll')}</button></div>`;
   $('simNote').textContent = S.simulateCheckout ? t('simOn') : t('simOff');
   $('simNote').innerHTML += '<br><br><b>Reap sandbox test cards</b> (docs.reap.global → Agentic → Setup) — enter on the hosted page; OTP <b>456789</b> (email or SMS):<br>4622 9431 2313 7797 · CVC 640 · 12/27<br>4622 9431 2313 7805 · CVC 304 · 12/27<br>4622 9431 2313 7847 · CVC 698 · 12/27<br>Team card from the organizers email also works if provisioned. If verification fails, click "Enroll card with Reap" for a NEW session (a failed session cannot be reused).';
 }
@@ -665,7 +666,7 @@ $('autoBtn').onclick = () => {
 refresh().catch(e => toast(e.message));
 setInterval(() => {
   if (!S || document.hidden || auto) return;
-  const waiting = (S.enrollment && S.enrollment.status !== 'ACTIVE') || S.purchases.some(p => ['REQUIRES_ACTION', 'PROCESSING'].includes(p.status)) || S.reapQueue.pending || S.reapQueue.running;
+  const waiting = S.enrollment?.pending || S.purchases.some(p => ['REQUIRES_ACTION', 'PROCESSING'].includes(p.status)) || S.reapQueue.pending || S.reapQueue.running;
   if (waiting) refresh().catch(() => {});
 }, 4000);
 </script>

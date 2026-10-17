@@ -47,6 +47,9 @@ function fresh() {
 
 let state = null;
 
+// Only a live card survives a reset; a dead hosted session (EXPIRED, FAILED…) would just block checkouts.
+const keepCard = e => (e?.status === 'ACTIVE' ? e : null);
+
 function freshWithHooks(keep = {}) {
   state = fresh();
   Object.assign(state, keep);
@@ -58,7 +61,7 @@ export function load() {
   mkdirSync(DIR, { recursive: true });
   const disk = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')) : null;
   if (disk?.schema === SCHEMA && disk.journal?.length) state = disk;
-  else freshWithHooks({ enrollment: disk?.enrollment || null });
+  else freshWithHooks({ enrollment: keepCard(disk?.enrollment) });
   save();
   return state;
 }
@@ -79,8 +82,7 @@ export function save() {
 }
 
 export function reset() {
-  const enrollment = state?.enrollment || null; // keep the enrolled Reap card across demo resets
-  freshWithHooks({ enrollment });
+  freshWithHooks({ enrollment: keepCard(state?.enrollment) }); // keep the enrolled Reap card across demo resets
   save();
   return state;
 }

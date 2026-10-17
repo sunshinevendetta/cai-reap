@@ -26,7 +26,8 @@ async function call(method, path, { body, idempotencyKey, headers = {} } = {}) {
   // Network blips: retry once with the SAME Idempotency-Key, so Reap replays instead of double-charging.
   const res = await send().catch(() => send());
   const text = await res.text();
-  const json = text ? JSON.parse(text) : null;
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch { if (res.ok) throw new Error(`Reap returned non-JSON (${res.status})`); }
   if (!res.ok) throw new ReapError(res.status, json);
   return json;
 }

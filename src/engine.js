@@ -757,23 +757,43 @@ export async function startEnrollment() {
   return s.enrollment;
 }
 
+// Terminal enrollments can never become ACTIVE — the only way forward is a new hosted session.
+const ENROLLMENT_TERMINAL = ['EXPIRED', 'FAILED', 'CANCELED', 'CANCELLED', 'REVOKED', 'DISABLED'];
+export const enrollmentPending = e => !!e && e.status !== 'ACTIVE' && !ENROLLMENT_TERMINAL.includes(e.status);
+
 export async function refreshEnrollment() {
   const s = load();
   // Never lose a completed card: adopt any ACTIVE enrollment on the account.
   if (s.enrollment?.status !== 'ACTIVE') {
+    const before = s.enrollment;
     const list = await reap.listEnrollments('cai-company-us11').catch(() => null);
-    const act = (list?.items || []).find(x => x.status === 'ACTIVE');
-    if (act) s.enrollment = { id: act.id, status: 'PENDING_REFRESH', nextAction: null, createdAt: act.createdAt };
+    const items = Array.isArray(list) ? list : list?.items || list?.data || [];
+    const act = items.find(x => x.status === 'ACTIVE');
+    if (act && s.enrollment === before) s.enrollment = { id: act.id, status: 'PENDING_REFRESH', nextAction: null, createdAt: act.createdAt };
   }
-  if (!s.enrollment) return null;
-  const e = await reap.getEnrollment(s.enrollment.id);
-  if (e.status !== s.enrollment.status) {
-    audit({ entityType: 'enrollment', entityId: e.id, event: 'STATE_CHANGED', from: s.enrollment.status, to: e.status });
+  const cur = s.enrollment;
+  if (!cur) return null;
+  const e = await reap.getEnrollment(cur.id);
+  // A new enrollment may have been started while we were waiting on Reap — never write this answer onto it.
+  if (s.enrollment !== cur) return s.enrollment;
+  if (e.status !== cur.status) {
+    audit({ entityType: 'enrollment', entityId: e.id, event: 'STATE_CHANGED', from: cur.status, to: e.status });
     op(s, { step: 8, action: 'REAP_ENROLLMENT_' + e.status, ref: e.id, actor: 'reap', en: `Reap enrollment is now ${e.status}.`, es: `El registro Reap ahora está ${e.status}.` });
   }
-  Object.assign(s.enrollment, { status: e.status, nextAction: e.nextAction });
+  Object.assign(cur, { status: e.status, nextAction: e.nextAction });
   save();
-  return s.enrollment;
+  if (cur.status === 'ACTIVE') releaseBlockedCheckouts();
+  return cur;
+}
+
+// Purchases approved while the card was not ACTIVE: submit them once it is (single flight).
+let releasing = null;
+function releaseBlockedCheckouts() {
+  if (releasing) return releasing;
+  releasing = (async () => {
+    for (const p of load().purchases.filter(p => p.status === 'APPROVED' && p.blocked === 'ENROLLMENT_NOT_ACTIVE')) await checkout(p).catch(() => {});
+  })().finally(() => { releasing = null; });
+  return releasing;
 }
 
 export function useExistingEnrollment(enrollmentId) {
@@ -1001,8 +1021,9 @@ export function refreshAllInBackground() {
   lastRefresh = Date.now();
   refreshing = (async () => {
     const s = load();
-    if (s.enrollment && s.enrollment.status !== 'ACTIVE') await refreshEnrollment().catch(() => {});
-    if (s.enrollment?.status === 'ACTIVE') for (const p of s.purchases.filter(p => p.status === 'APPROVED' && p.blocked === 'ENROLLMENT_NOT_ACTIVE')) await checkout(p).catch(() => {});
+    // Poll only while a hosted session is open (or none exists yet, to adopt an ACTIVE card) — not dead ones.
+    if (!s.enrollment || enrollmentPending(s.enrollment)) await refreshEnrollment().catch(() => {});
+    if (s.enrollment?.status === 'ACTIVE') await releaseBlockedCheckouts();
     for (const p of s.purchases.filter(p => ['REQUIRES_ACTION', 'PROCESSING'].includes(p.status))) await refreshPurchase(p.id).catch(() => {});
     if ((s.reapQueue || []).length) drainReapQueue();
   })().finally(() => { refreshing = null; });
@@ -1171,7 +1192,7 @@ export function snapshot() {
     collections: s.collections, payments: s.payments, applications: s.applications, allocations: s.allocations,
     creditNotes: s.creditNotes, apBills: s.apBills, recurring: s.recurring, reapQueue: reapQueueStatus(),
     budgets: budgets(), cash: cashPosition(), forecast: cashForecast(30),
-    purchases: s.purchases, enrollment: s.enrollment,
+    purchases: s.purchases, enrollment: s.enrollment && { ...s.enrollment, pending: enrollmentPending(s.enrollment) },
     mastersheet: mastersheet(), closeChecklist: closeChecklist(), closedMonths: s.closedMonths.map(c => ({ ...c, statements: undefined, sox: undefined })),
     reconciliation: reconcile(), sox: soxControls(),
     aging: arAging(), rollforward: arRollforward(), revenue: revenueRecon(), statements: statements(),

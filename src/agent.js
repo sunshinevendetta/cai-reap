@@ -126,7 +126,11 @@ export async function chat(messages, lang = 'en') {
     // Card status
     if (/(card|tarjeta|enroll|registro)/.test(t)) {
       const s = E.snapshot(); step('reap:get_enrollment');
-      return { text: s.enrollment ? `Reap enrollment ${s.enrollment.id}: ${s.enrollment.status}${s.enrollment.status !== 'ACTIVE' ? (es ? ' — completa el registro en la pestaña Tarjeta Reap.' : ' — finish enrollment in the Reap card tab.') : ''}` : (es ? 'Sin tarjeta registrada. Ve a la pestaña Tarjeta Reap.' : 'No card enrolled yet. Go to the Reap card tab.'), steps };
+      const e = s.enrollment;
+      const hint = !e || e.status === 'ACTIVE' ? ''
+        : e.pending ? (es ? ' — completa el registro en la pestaña Tarjeta Reap.' : ' — finish enrollment in the Reap card tab.')
+        : (es ? ' — la sesión terminó sin tarjeta; inicia un registro nuevo en la pestaña Tarjeta Reap.' : ' — the session ended without a card; start a new enrollment in the Reap card tab.');
+      return { text: e ? `Reap enrollment ${e.id}: ${e.status}${hint}` : (es ? 'Sin tarjeta registrada. Ve a la pestaña Tarjeta Reap.' : 'No card enrolled yet. Go to the Reap card tab.'), steps };
     }
 
     // Default: summary
